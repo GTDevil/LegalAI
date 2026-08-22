@@ -1,8 +1,42 @@
 # LegalAI
 
-Loan Settlement Agent — desktop app and API for recommending loan settlement offers based on borrower and loan factors.
+Loan Settlement Agent — a desktop app (and optional API) for recommending loan settlement offers.
 
-## Development
+---
+
+## Start here (from scratch)
+
+### If you only want the app on Windows (no coding)
+
+1. Go to [GitHub Actions → Build Windows EXE](https://github.com/GTDevil/LegalAI/actions/workflows/build-windows-exe.yml)
+2. Open the latest green checkmark run
+3. Download artifact **`LegalAI-windows-exe`**
+4. Extract **`LegalAI.exe`**
+5. Double-click **`LegalAI.exe`**
+6. Enter loan details → click **Calculate Settlement Offer**
+
+### If you want to build on your PC (Windows)
+
+```powershell
+git clone https://github.com/GTDevil/LegalAI.git
+cd LegalAI
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements-build.txt
+.venv\Scripts\python -m PyInstaller legalai-desktop.spec --noconfirm
+```
+
+Your app: `dist\LegalAI.exe`
+
+### If you are developing in Cursor Cloud Agents
+
+1. Save the environment in the Environment panel (install script: `./.cursor/scripts/install.sh`)
+2. Start an agent on `GTDevil/LegalAI` / `main`
+3. Run desktop UI: `.venv/bin/python run_desktop.py`
+4. Run tests: `.venv/bin/pytest -v`
+
+---
+
+## Development commands
 
 ### Setup
 
@@ -16,7 +50,7 @@ Loan Settlement Agent — desktop app and API for recommending loan settlement o
 .venv/bin/python run_desktop.py
 ```
 
-### Run API server
+### Run API server (optional)
 
 ```bash
 .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -28,37 +62,39 @@ Loan Settlement Agent — desktop app and API for recommending loan settlement o
 .venv/bin/pytest -v
 ```
 
-### Build standalone desktop executable
-
-**On Windows (produces `LegalAI.exe` — double-click to open the desktop app):**
+### Build desktop executable
 
 ```bash
 ./scripts/build_exe.sh
 ```
 
-**On Linux:**
+Output: `dist/LegalAI` (Linux) or `dist/LegalAI.exe` (Windows). No console window on Windows.
 
-```bash
-./scripts/build_exe.sh
-./dist/LegalAI
-```
-
-**API server executable** (optional, opens a background API instead of the desktop UI):
+**API server executable** (optional):
 
 ```bash
 BUILD_TARGET=server ./scripts/build_exe.sh
 ```
 
-**Download Windows `.exe` from GitHub:** open the repo’s **Actions** tab → **Build Windows EXE** → download the `LegalAI-windows-exe` artifact.
+---
 
-The desktop app lets you enter loan details, click **Calculate Settlement Offer**, and view the recommended amount, discount, payment terms, and rationale.
+## Project layout
 
-### API
+| Path | What it is |
+| --- | --- |
+| `app/desktop_ui.py` | Desktop window (Tkinter) |
+| `app/settlement.py` | Settlement calculation logic |
+| `app/main.py` | FastAPI API (optional) |
+| `run_desktop.py` | Launch desktop app |
+| `legalai-desktop.spec` | PyInstaller config for desktop `.exe` |
+| `scripts/build_exe.sh` | One-command build script |
 
-- `GET /health` — health check
-- `POST /api/v1/settlement/recommend` — get a settlement recommendation
+---
 
-Example request:
+## API (optional)
+
+- `GET /health`
+- `POST /api/v1/settlement/recommend`
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/settlement/recommend \
