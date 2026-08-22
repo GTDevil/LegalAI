@@ -3,6 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+TARGET="${BUILD_TARGET:-desktop}"
+
 if [[ ! -d .venv ]]; then
   python3 -m venv .venv 2>/dev/null || python -m venv .venv
 fi
@@ -20,10 +22,17 @@ fi
 "$PYTHON" -m pip install -r requirements-build.txt
 
 rm -rf build dist
-"$PYTHON" -m PyInstaller legalai.spec --noconfirm
+
+if [[ "$TARGET" == "server" ]]; then
+  echo "Building API server executable..."
+  "$PYTHON" -m PyInstaller legalai.spec --noconfirm
+else
+  echo "Building desktop UI executable..."
+  "$PYTHON" -m PyInstaller legalai-desktop.spec --noconfirm
+fi
 
 echo ""
-echo "Build complete."
+echo "Build complete ($TARGET)."
 if [[ -f dist/LegalAI.exe ]]; then
   echo "Windows executable: dist/LegalAI.exe"
 elif [[ -f dist/LegalAI ]]; then

@@ -1,6 +1,6 @@
 # LegalAI
 
-Loan Settlement Agent — an AI-assisted API for recommending loan settlement offers based on borrower and loan factors.
+Loan Settlement Agent — desktop app and API for recommending loan settlement offers based on borrower and loan factors.
 
 ## Development
 
@@ -8,6 +8,12 @@ Loan Settlement Agent — an AI-assisted API for recommending loan settlement of
 
 ```bash
 ./.cursor/scripts/install.sh
+```
+
+### Run desktop UI
+
+```bash
+.venv/bin/python run_desktop.py
 ```
 
 ### Run API server
@@ -22,34 +28,30 @@ Loan Settlement Agent — an AI-assisted API for recommending loan settlement of
 .venv/bin/pytest -v
 ```
 
-### Build standalone executable
+### Build standalone desktop executable
 
-**On Windows (produces `LegalAI.exe`):**
-
-```bash
-./scripts/build_exe.sh
-```
-
-The output is `dist/LegalAI.exe`. Double-click it or run from Command Prompt:
-
-```bash
-dist\LegalAI.exe --open-browser
-```
-
-**On Linux (produces `dist/LegalAI`):**
+**On Windows (produces `LegalAI.exe` — double-click to open the desktop app):**
 
 ```bash
 ./scripts/build_exe.sh
-./dist/LegalAI --host 127.0.0.1 --port 8000
 ```
 
-**Download Windows `.exe` from GitHub:** after pushing to `main`, open the repo’s **Actions** tab → **Build Windows EXE** → download the `LegalAI-windows-exe` artifact.
+**On Linux:**
 
-Options:
+```bash
+./scripts/build_exe.sh
+./dist/LegalAI
+```
 
-- `--host` — bind address (default `127.0.0.1`)
-- `--port` — port (default `8000`)
-- `--open-browser` — open API docs in your browser
+**API server executable** (optional, opens a background API instead of the desktop UI):
+
+```bash
+BUILD_TARGET=server ./scripts/build_exe.sh
+```
+
+**Download Windows `.exe` from GitHub:** open the repo’s **Actions** tab → **Build Windows EXE** → download the `LegalAI-windows-exe` artifact.
+
+The desktop app lets you enter loan details, click **Calculate Settlement Offer**, and view the recommended amount, discount, payment terms, and rationale.
 
 ### API
 

@@ -5,8 +5,9 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "run_desktop.py"
       - "run_server.py"
-      - "legalai.spec"
+      - "legalai*.spec"
       - "requirements*.txt"
       - "scripts/build_exe.sh"
       - ".github/workflows/build-windows-exe.yml"
