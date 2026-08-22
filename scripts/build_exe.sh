@@ -7,22 +7,20 @@ if [[ ! -d .venv ]]; then
   python3 -m venv .venv 2>/dev/null || python -m venv .venv
 fi
 
-if [[ -f .venv/Scripts/pip.exe ]]; then
-  PIP=".venv/Scripts/pip.exe"
-  PYINSTALLER=".venv/Scripts/pyinstaller.exe"
-elif [[ -f .venv/bin/pip ]]; then
-  PIP=".venv/bin/pip"
-  PYINSTALLER=".venv/bin/pyinstaller"
+if [[ -f .venv/Scripts/python.exe ]]; then
+  PYTHON=".venv/Scripts/python.exe"
+elif [[ -f .venv/bin/python ]]; then
+  PYTHON=".venv/bin/python"
 else
-  echo "Could not find pip in .venv"
+  echo "Could not find python in .venv"
   exit 1
 fi
 
-"$PIP" install --upgrade pip
-"$PIP" install -r requirements-build.txt
+"$PYTHON" -m pip install --upgrade pip
+"$PYTHON" -m pip install -r requirements-build.txt
 
 rm -rf build dist
-"$PYINSTALLER" legalai.spec --noconfirm
+"$PYTHON" -m PyInstaller legalai.spec --noconfirm
 
 echo ""
 echo "Build complete."
