@@ -59,6 +59,7 @@ Use **Demo mode** (the default). Sample people are already in the sheet.
 
 | Person | Phone ending | What should happen |
 | --- | --- | --- |
+| Ramesh Nair | …08 | Interested — remaining ₹1,00,000, settlement ₹30,000, fee ₹5,000 |
 | Rahul Verma | …10 | No answer |
 | Ananya Iyer | …11 | Not interested |
 | Mohammed Irfan | …13 | No loan |

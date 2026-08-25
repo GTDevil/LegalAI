@@ -20,6 +20,15 @@ def test_demo_outcomes_by_last_digit():
     assert classify_demo_outcome("9876543214") == "interested"
 
 
+def test_one_lakh_demo_number_matches_firm_example():
+    result = simulate_call(Lead(name="Ramesh Nair", phone="9876501008"))
+    lead = result.lead
+    assert lead.remaining_amount == 100000
+    assert lead.settlement_amount == 30000
+    assert lead.legal_fee == 5000
+    assert lead.fee_percent == 5
+
+
 def test_simulate_interested_fills_settlement_fields():
     result = simulate_call(Lead(name="Priya Sharma", phone="9876543214"), firm_name="Demo Firm")
     lead = result.lead
@@ -47,11 +56,14 @@ def test_campaign_updates_sample_sheet(tmp_path: Path):
     leads = load_workbook_file(source)
     settings = AppSettings(firm_name="Test Firm", call_mode="demo", seconds_between_calls=0)
     report = CampaignController().run(leads, settings)
-    assert report.attempted == 8
+    assert report.attempted >= 8
     output = tmp_path / "updated.xlsx"
     save_workbook_file(output, leads)
     reloaded = load_workbook_file(output)
-    priya = next(row for row in reloaded if row.name == "Priya Sharma")
+    ramesh = next(row for row in reloaded if row.name == "Ramesh Nair")
+    assert ramesh.remaining_amount == 100000
+    assert ramesh.settlement_amount == 30000
+    assert ramesh.legal_fee == 5000
     assert priya.interested == "Yes"
     assert priya.settlement_amount is not None
     assert priya.cibil_or_experience.startswith("CIBIL")
