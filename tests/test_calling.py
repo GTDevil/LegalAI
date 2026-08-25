@@ -54,6 +54,7 @@ def test_campaign_updates_sample_sheet(tmp_path: Path):
     priya = next(row for row in reloaded if row.name == "Priya Sharma")
     assert priya.interested == "Yes"
     assert priya.settlement_amount is not None
+    assert priya.cibil_or_experience.startswith("CIBIL")
     rahul = next(row for row in reloaded if row.name == "Rahul Verma")
     assert rahul.call_status == "No answer"
 

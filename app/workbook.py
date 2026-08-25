@@ -98,8 +98,15 @@ def _parse_amount(value: Any) -> float | None:
     return float(text)
 
 
+def _normalize_header(key: str) -> str:
+    import re
+
+    text = str(key).strip().lower().replace("%", " percent")
+    return re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+
+
 def lead_from_mapping(data: dict[str, Any]) -> Lead:
-    lowered = {str(key).strip().lower().replace(" ", "_"): value for key, value in data.items()}
+    lowered = {_normalize_header(key): value for key, value in data.items()}
 
     def pick(*keys: str, default: str = "") -> str:
         for key in keys:
@@ -121,7 +128,7 @@ def lead_from_mapping(data: dict[str, Any]) -> Lead:
         ),
         legal_fee=_parse_amount(lowered.get("legal_fee") or lowered.get("fee_for_legal_concerns")),
         fee_percent=_parse_amount(lowered.get("fee_percent") or lowered.get("fee_%")),
-        cibil_or_experience=pick("cibil_or_experience", "cibil", "experience_score"),
+        cibil_or_experience=pick("cibil_or_experience", "cibil_experience_score", "cibil", "experience_score"),
         notes=pick("notes"),
     )
 
