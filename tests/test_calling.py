@@ -64,6 +64,7 @@ def test_campaign_updates_sample_sheet(tmp_path: Path):
     assert ramesh.remaining_amount == 100000
     assert ramesh.settlement_amount == 30000
     assert ramesh.legal_fee == 5000
+    priya = next(row for row in reloaded if row.name == "Priya Sharma")
     assert priya.interested == "Yes"
     assert priya.settlement_amount is not None
     assert priya.cibil_or_experience.startswith("CIBIL")
