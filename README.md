@@ -1,103 +1,70 @@
-# LegalAI
+# LegalAI — loan settlement calling desk
 
-Loan Settlement Agent — a desktop app (and optional API) for recommending loan settlement offers.
+Windows program for a legal firm that settles loans. It shows an **Excel-like sheet** of names and numbers. When you click **Start process**, an **AI agent** calls through the list and writes back interest, loan amounts, a **30% (or lesser) settlement offer**, and a **5%–7.5% legal fee**.
 
----
-
-## Start here (from scratch)
-
-### If you only want the app on Windows (no coding)
-
-1. Go to [GitHub Actions → Build Windows EXE](https://github.com/GTDevil/LegalAI/actions/workflows/build-windows-exe.yml)
-2. Open the latest green checkmark run
-3. Download artifact **`LegalAI-windows-exe`**
-4. Extract **`LegalAI.exe`**
-5. Double-click **`LegalAI.exe`**
-6. Enter loan details → click **Calculate Settlement Offer**
-
-### If you want to build on your PC (Windows)
-
-```powershell
-git clone https://github.com/GTDevil/LegalAI.git
-cd LegalAI
-python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements-build.txt
-.venv\Scripts\python -m PyInstaller legalai-desktop.spec --noconfirm
-```
-
-Your app: `dist\LegalAI.exe`
-
-### If you are developing in Cursor Cloud Agents
-
-1. Save the environment in the Environment panel (install script: `./.cursor/scripts/install.sh`)
-2. Start an agent on `GTDevil/LegalAI` / `main`
-3. Run desktop UI: `.venv/bin/python run_desktop.py`
-4. Run tests: `.venv/bin/pytest -v`
+**Non-technical install, test, and copy-to-another-PC steps:** see [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 
 ---
 
-## Development commands
+## What you see after opening the app
 
-### Setup
+- A sheet with Name, Phone, Call status, Interested, Total loan, Remaining, Settlement offered, Legal fee, CIBIL/experience, Notes
+- **Start process** / **Stop**
+- Open and save Excel (`.xlsx`) or CSV
+- **Settings** (firm name, demo vs Twilio)
+
+Example: remaining ₹1,00,000 → settlement ₹30,000 or lesser; fee ₹5,000 or ₹7,500.
+
+Default mode is **Demo** (no real ringing). Use it to train staff. Live ringing needs Twilio credentials in Settings.
+
+---
+
+## Windows — no coding
+
+1. GitHub **Actions** → **Build Windows EXE** → latest green run → download **LegalAI-windows-exe**
+2. Unzip and double-click **LegalAI.exe**
+3. Click **Start process**
+
+Or copy this project folder to the PC, install Python 3.12 (tick **Add to PATH**), then:
+
+1. `windows\Install-LegalAI.bat`
+2. `windows\Start-LegalAI.bat`
+
+---
+
+## Developers / Cursor Cloud
 
 ```bash
 ./.cursor/scripts/install.sh
-```
-
-### Run desktop UI
-
-```bash
-.venv/bin/python run_desktop.py
-```
-
-### Run API server (optional)
-
-```bash
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### Run tests
-
-```bash
 .venv/bin/pytest -v
-```
-
-### Build desktop executable
-
-```bash
+.venv/bin/python run_desktop.py
+.venv/bin/python -m app.cli --input data/sample_leads.csv --output /tmp/leads-out.xlsx
+.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ./scripts/build_exe.sh
 ```
 
-Output: `dist/LegalAI` (Linux) or `dist/LegalAI.exe` (Windows). No console window on Windows.
-
-**API server executable** (optional):
-
-```bash
-BUILD_TARGET=server ./scripts/build_exe.sh
-```
+Cursor skill: `.cursor/skills/loan-settlement-calling/SKILL.md`.
 
 ---
 
 ## Project layout
 
-| Path | What it is |
+| Path | Role |
 | --- | --- |
-| `app/desktop_ui.py` | Desktop window (Tkinter) |
-| `app/settlement.py` | Settlement calculation logic |
-| `app/main.py` | FastAPI API (optional) |
-| `run_desktop.py` | Launch desktop app |
-| `legalai-desktop.spec` | PyInstaller config for desktop `.exe` |
-| `scripts/build_exe.sh` | One-command build script |
+| `app/desktop_ui.py` | Excel-like calling desk |
+| `app/call_script.py` | Call script and demo conversations |
+| `app/call_agent.py` | Campaign runner (demo + Twilio) |
+| `app/settlement.py` | 30% settlement and 5–7.5% fee |
+| `app/workbook.py` | Load/save xlsx and csv |
+| `data/sample_leads.csv` | Practice names and numbers |
+| `docs/USER_GUIDE.md` | Staff instructions |
+| `windows/*.bat` | Install and start on Windows |
 
 ---
 
 ## API (optional)
 
 - `GET /health`
-- `POST /api/v1/settlement/recommend`
-
-```bash
-curl -X POST http://localhost:8000/api/v1/settlement/recommend \
-  -H "Content-Type: application/json" \
-  -d '{"principal": 50000, "outstanding_balance": 40000, "days_past_due": 90, "borrower_income": 55000}'
-```
+- `POST /api/v1/settlement/recommend` — `remaining_amount`, `fee_percent` (5–7.5), `settlement_percent` (≤30)
+- `POST /api/v1/calls/simulate` — one demo call
+- `POST /api/v1/campaign/demo` — demo campaign on a list of leads

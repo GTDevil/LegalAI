@@ -5,13 +5,24 @@ from pathlib import Path
 block_cipher = None
 project_root = Path(SPECPATH)
 
-hiddenimports = ["app", "app.desktop_ui", "app.settlement"]
+hiddenimports = [
+    "app",
+    "app.desktop_ui",
+    "app.settlement",
+    "app.workbook",
+    "app.call_script",
+    "app.call_agent",
+    "app.settings",
+    "app.paths",
+    "openpyxl",
+]
+datas = [(str(project_root / "data" / "sample_leads.csv"), "data")]
 
 a = Analysis(
     [str(project_root / "run_desktop.py")],
     pathex=[str(project_root)],
     binaries=[],
-    datas=[],
+    datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

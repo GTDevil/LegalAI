@@ -1,54 +1,88 @@
-"""FastAPI application for the LegalAI Loan Settlement Agent."""
+"""HTTP API for settlement math and demo calling campaigns."""
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from app.settlement import LoanCase, recommend_settlement
+from app.call_agent import CampaignController
+from app.call_script import simulate_call
+from app.settings import AppSettings
+from app.settlement import compute_settlement
+from app.workbook import Lead
 
 app = FastAPI(
-    title="LegalAI Loan Settlement Agent",
-    description="AI-assisted loan settlement recommendation API",
-    version="0.1.0",
+    title="LegalAI Loan Settlement Calling Agent",
+    description="Spreadsheet-oriented loan settlement calling assistant",
+    version="0.2.0",
 )
 
 
 class SettlementRequest(BaseModel):
-    principal: float = Field(gt=0, description="Original loan principal")
-    outstanding_balance: float = Field(gt=0, description="Current outstanding balance")
-    days_past_due: int = Field(ge=0, description="Days the loan is past due")
-    borrower_income: float = Field(ge=0, description="Borrower's annual income")
-    prior_settlements: int = Field(default=0, ge=0, description="Number of prior settlements")
+    remaining_amount: float = Field(gt=0, description="Amount still owed")
+    fee_percent: float = Field(default=7.5, description="Legal fee 5 to 7.5")
+    settlement_percent: float = Field(default=30, description="At most 30% of remaining")
 
 
 class SettlementResponse(BaseModel):
-    recommended_amount: float
-    discount_percent: float
-    payment_terms_months: int
-    rationale: str
+    remaining_amount: float
+    settlement_amount: float
+    fee_amount: float
+    fee_percent: float
+    settlement_percent: float
+    summary: str
+
+
+class SimulateCallRequest(BaseModel):
+    name: str
+    phone: str
+    firm_name: str = "LegalAI Associates"
+
+
+class CampaignLead(BaseModel):
+    name: str = ""
+    phone: str = ""
+
+
+class CampaignRequest(BaseModel):
+    leads: list[CampaignLead]
+    firm_name: str = "LegalAI Associates"
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "legalai-settlement-agent"}
+    return {"status": "ok", "service": "legalai-calling-agent"}
 
 
 @app.post("/api/v1/settlement/recommend", response_model=SettlementResponse)
 def recommend(request: SettlementRequest) -> SettlementResponse:
     try:
-        case = LoanCase(
-            principal=request.principal,
-            outstanding_balance=request.outstanding_balance,
-            days_past_due=request.days_past_due,
-            borrower_income=request.borrower_income,
-            prior_settlements=request.prior_settlements,
+        offer = compute_settlement(
+            request.remaining_amount,
+            fee_percent=request.fee_percent,
+            settlement_percent=request.settlement_percent,
         )
-        offer = recommend_settlement(case)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return SettlementResponse(**offer.__dict__)
 
-    return SettlementResponse(
-        recommended_amount=offer.recommended_amount,
-        discount_percent=offer.discount_percent,
-        payment_terms_months=offer.payment_terms_months,
-        rationale=offer.rationale,
-    )
+
+@app.post("/api/v1/calls/simulate")
+def simulate(request: SimulateCallRequest) -> dict:
+    result = simulate_call(Lead(name=request.name, phone=request.phone), firm_name=request.firm_name)
+    lead = result.lead
+    return {
+        "outcome": result.outcome,
+        "transcript": result.transcript,
+        "lead": lead.display_values(),
+    }
+
+
+@app.post("/api/v1/campaign/demo")
+def demo_campaign(request: CampaignRequest) -> dict:
+    leads = [Lead(name=item.name, phone=item.phone) for item in request.leads]
+    settings = AppSettings(firm_name=request.firm_name, call_mode="demo", seconds_between_calls=0)
+    report = CampaignController().run(leads, settings)
+    return {
+        "attempted": report.attempted,
+        "completed": report.completed,
+        "leads": [lead.display_values() for lead in leads],
+    }

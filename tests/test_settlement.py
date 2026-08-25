@@ -1,10 +1,9 @@
-"""Tests for settlement recommendation logic."""
+"""Tests for 30% settlement / 5–7.5% legal fee rules."""
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.settlement import LoanCase, recommend_settlement
+from app.settlement import compute_settlement, format_inr
 
 client = TestClient(app)
 
@@ -15,58 +14,53 @@ def test_health_endpoint():
     assert response.json()["status"] == "ok"
 
 
-def test_recommend_settlement_recent_default():
-    case = LoanCase(
-        principal=50000,
-        outstanding_balance=45000,
-        days_past_due=15,
-        borrower_income=60000,
-    )
-    offer = recommend_settlement(case)
-    assert offer.discount_percent == 5.0
-    assert offer.recommended_amount == 42750.0
-    assert offer.payment_terms_months == 3
+def test_one_lakh_remaining_high_fee():
+    offer = compute_settlement(100000, fee_percent=7.5, settlement_percent=30)
+    assert offer.settlement_amount == 30000.0
+    assert offer.fee_amount == 7500.0
 
 
-def test_recommend_settlement_severely_delinquent():
-    case = LoanCase(
-        principal=100000,
-        outstanding_balance=80000,
-        days_past_due=200,
-        borrower_income=5000,
-        prior_settlements=0,
-    )
-    offer = recommend_settlement(case)
-    assert offer.discount_percent >= 40.0
-    assert offer.payment_terms_months == 12
+def test_one_lakh_remaining_low_fee():
+    offer = compute_settlement(100000, fee_percent=5.0)
+    assert offer.settlement_amount == 30000.0
+    assert offer.fee_amount == 5000.0
+
+
+def test_rejects_fee_outside_band():
+    try:
+        compute_settlement(100000, fee_percent=10)
+        assert False, "expected error"
+    except ValueError as exc:
+        assert "5 and 7.5" in str(exc)
+
+
+def test_rejects_settlement_above_30_percent():
+    try:
+        compute_settlement(100000, settlement_percent=40)
+        assert False, "expected error"
+    except ValueError as exc:
+        assert "30" in str(exc)
+
+
+def test_format_inr_indian_grouping():
+    assert format_inr(100000) == "₹1,00,000.00"
 
 
 def test_settlement_api_endpoint():
     response = client.post(
         "/api/v1/settlement/recommend",
-        json={
-            "principal": 50000,
-            "outstanding_balance": 40000,
-            "days_past_due": 90,
-            "borrower_income": 55000,
-            "prior_settlements": 0,
-        },
+        json={"remaining_amount": 100000, "fee_percent": 7.5, "settlement_percent": 30},
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["recommended_amount"] < 40000
-    assert data["discount_percent"] > 0
-    assert "rationale" in data
+    assert data["settlement_amount"] == 30000.0
+    assert data["fee_amount"] == 7500.0
+    assert "summary" in data
 
 
 def test_invalid_balance_rejected():
     response = client.post(
         "/api/v1/settlement/recommend",
-        json={
-            "principal": 50000,
-            "outstanding_balance": -100,
-            "days_past_due": 30,
-            "borrower_income": 50000,
-        },
+        json={"remaining_amount": -100, "fee_percent": 5},
     )
     assert response.status_code == 422

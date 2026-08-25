@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "data/**"
       - "run_desktop.py"
       - "run_server.py"
       - "legalai*.spec"
