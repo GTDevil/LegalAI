@@ -3,14 +3,19 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
 
 from app.call_agent import CampaignController
 from app.call_script import simulate_call
+from app.live_call import azure_voice_id, place_vapi_call
+from app.live_config import REQUIREMENTS, live_ready, missing_live_settings
 from app.paths import project_root
 from app.settings import AppSettings
 from app.settlement import compute_settlement
 from app.url_fetch import fetch_public_text, normalize_sheet_url
 from app.workbook import Lead
+
+load_dotenv()
 
 app = FastAPI(
     title="LegalAI Loan Settlement Calling Agent",
@@ -52,6 +57,14 @@ class CampaignRequest(BaseModel):
 
 class ImportUrlRequest(BaseModel):
     url: str = Field(min_length=8, description="https link to a CSV or Google Sheet")
+
+
+class LiveCallRequest(BaseModel):
+    name: str = ""
+    phone: str
+    firm_name: str = "LegalAI Associates"
+    voice_gender: str = "woman"
+    language: str = "hi"
 
 
 @app.get("/health")
@@ -100,6 +113,36 @@ def import_from_url(request: ImportUrlRequest) -> dict:
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Could not download that link") from exc
     return {"text": text}
+
+
+@app.get("/api/v1/live/status")
+def live_status() -> dict:
+    ready = live_ready()
+    return {
+        "ready": ready,
+        "provider": "vapi",
+        "missing": missing_live_settings(),
+        "requirements": REQUIREMENTS,
+        "voice_woman": azure_voice_id("woman", "hi"),
+        "voice_man": azure_voice_id("man", "hi"),
+    }
+
+
+@app.post("/api/v1/calls/live")
+def live_call(request: LiveCallRequest) -> dict:
+    if not request.phone.strip():
+        raise HTTPException(status_code=400, detail="Phone number is required")
+    try:
+        result = place_vapi_call(
+            name=request.name,
+            phone=request.phone,
+            firm_name=request.firm_name,
+            voice_gender=request.voice_gender,
+            language=request.language,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return result
 
 
 @app.post("/api/v1/campaign/demo")

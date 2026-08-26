@@ -11,7 +11,8 @@ LegalAI — test on YOUR computer (no coding)
 4. Click "Download Excel (CSV)" and open that file in Excel.
 
 This is Demo mode: the AI agent talks in the window. Real mobile phones do not ring.
-That is how you test the calling agent on any PC.
+For a real call with a natural Indian woman/man voice, open docs\LIVE_CALLING.md
+and click Live setup on the calling desk.
 
 If Windows blocks the .bat file: right-click it → Properties → Unblock → OK, then double-click again.
 If a browser warning appears for local files, use Edge or Chrome (not an old Internet Explorer).

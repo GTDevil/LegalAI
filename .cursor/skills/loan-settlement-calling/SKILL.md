@@ -25,6 +25,7 @@ Primary way staff run it on a PC: `web/index.html` / `DOUBLE-CLICK-TO-TEST.bat` 
 Also keep:
 
 - Tkinter window via `run_desktop.py --window`
+- Live real calls only after TRAI/DND-compliant consent, Vapi keys in `.env`, and `http://127.0.0.1:8000`. Neural Indian voices: Swara (woman), Madhur (man). See `docs/LIVE_CALLING.md`.
 - Hindi speech in the browser desk (`speechSynthesis`, language हिन्दी)
 - Bulk add from CSV file, paste, or https/Google Sheet link (`parseLeadsFromText`, `/api/v1/import/from-url`)
 
@@ -69,4 +70,4 @@ Windows staff: double-click `DOUBLE-CLICK-TO-TEST.bat` or open `web/index.html`.
 - Call only numbers the firm is allowed to contact. Do not add autodial-until-answer, call blasting, or harassment retries.
 - Do not log Twilio auth tokens into source control or README examples.
 - Keep fee percent clamped to 5–7.5 and settlement percent at most 30.
-- Live Twilio mode plays the script on the PSTN; full two-way voice-AI with automatic amount capture still needs a telephony+webhook product. Demo mode is what auto-fills the sheet end-to-end without a phone network.
+- Live Twilio mode plays the script on the PSTN; that robot read-aloud is not the natural-voice path. Natural live calls use Vapi + Azure neural Hindi (Swara/Madhur). Do not add autodial-until-answer or call blasting.

@@ -22,6 +22,8 @@ def test_html_is_self_contained():
     assert "Import from link" in HTML
     assert "हिन्दी" in HTML
     assert "speechSynthesis" in HTML
+    assert "Live setup" in HTML
+    assert "hi-IN-SwaraNeural" in HTML or "Swara" in HTML
     assert calling_desk_html().exists()
 
 

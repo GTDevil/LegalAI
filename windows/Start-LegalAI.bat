@@ -8,7 +8,7 @@ if not exist ".venv\Scripts\python.exe" (
   goto :eof
 )
 
-".venv\Scripts\python.exe" run_desktop.py
+".venv\Scripts\python.exe" run_web.py
 if errorlevel 1 (
   echo Opening the browser calling desk instead.
   start "" "%cd%\web\index.html"

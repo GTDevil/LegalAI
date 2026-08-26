@@ -54,7 +54,15 @@ Only if you already have Python 3.12 (tick **Add python.exe to PATH** when insta
 
 If Python is missing, those files now open the **same browser page** instead of failing.
 
-## Optional: real phone calls
+## Real phone calls (next step)
+
+Demo mode never rings a mobile. For a live call you need permission, TRAI/DND compliance, prepaid credit, a number that can dial India, and a Vapi account.
+
+Natural Indian **woman** or **man** voice (not the robotic PC speaker): Azure neural Hindi Swara / Madhur via Vapi.
+
+Plain-language checklist: [docs/LIVE_CALLING.md](LIVE_CALLING.md)
+
+On the calling desk click **Live setup**, fill `.env` from `.env.example`, start with `windows\Start-LegalAI.bat` so the address is `http://127.0.0.1:8000`, tick **Live real call**, and test **one number you own**.
 
 Demo mode does not call mobiles. Real ringing needs a Twilio account, money per minute, and numbers you are allowed to call. Use Demo mode until the sheet and transcript work. Then a technical person can put Twilio keys in the Python app **Settings**.
 

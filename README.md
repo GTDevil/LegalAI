@@ -15,7 +15,7 @@ Or double-click `web/index.html` in Edge or Chrome.
 
 Full staff steps: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) and `START-HERE.txt`.
 
-Demo mode does not ring real phones. That is how you test the agent.
+Demo mode does not ring real phones. For a live Indian-sounding call, see [docs/LIVE_CALLING.md](docs/LIVE_CALLING.md).
 
 ---
 
