@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LegalAI — Loan Settlement Calling Agent</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --primary: #12355b;
+      --accent: #1d4ed8;
+      --text: #111827;
+      --muted: #6b7280;
+      --card: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 16px 20px 8px;
+    }
+    h1 { margin: 0; color: var(--primary); font-size: 22px; }
+    .sub { color: var(--muted); margin: 6px 0 12px; }
+    .banner {
+      background: #ecfdf5;
+      border: 1px solid #6ee7b7;
+      color: #065f46;
+      padding: 10px 14px;
+      margin: 0 20px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 20px 12px;
+      align-items: center;
+    }
+    button {
+      font: 14px/1 "Segoe UI", system-ui, sans-serif;
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,.08);
+    }
+    button.primary { background: var(--accent); color: #fff; font-weight: 700; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .sheet-wrap {
+      margin: 0 20px;
+      overflow: auto;
+      background: var(--card);
+      border-radius: 8px;
+      max-height: 46vh;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 1200px; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; white-space: nowrap; }
+    th { background: #f8fafc; position: sticky; top: 0; z-index: 1; }
+    tr.completed { background: #bbf7d0; }
+    tr.noanswer { background: #e5e7eb; }
+    tr.notinterested, tr.noloan { background: #fee2e2; }
+    tr.calling { background: #fef3c7; }
+    input.cell {
+      width: 100%;
+      min-width: 90px;
+      border: 1px solid transparent;
+      font: inherit;
+      background: transparent;
+      padding: 4px;
+    }
+    input.cell:focus { border-color: var(--accent); background: #fff; outline: none; }
+    .log-label { padding: 12px 20px 4px; color: var(--muted); font-size: 13px; }
+    #log {
+      margin: 0 20px 16px;
+      height: 220px;
+      overflow: auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      white-space: pre-wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    footer { padding: 0 20px 20px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LegalAI calling desk</h1>
+    <p class="sub">Excel-like sheet of people to call. Click <b>Start process</b>. The AI agent calls each number (demo — no real phone) and fills settlement details.</p>
+  </header>
+  <div class="banner">
+    You do not need Python or an installer. This page <b>is</b> the test app.
+    After it runs, check <b>Ramesh Nair</b>: remaining 100000, settlement 30000, fee 5000.
+    Then click <b>Download Excel (CSV)</b> and open the file in Excel.
+  </div>
+  <div class="toolbar">
+    <button class="primary" id="startBtn" type="button">Start process</button>
+    <button id="stopBtn" type="button">Stop</button>
+    <button id="addBtn" type="button">Add person</button>
+    <button id="resetBtn" type="button">Reset sample list</button>
+    <button id="downloadBtn" type="button">Download Excel (CSV)</button>
+    <span style="margin-left:auto;color:#6b7280;font-size:13px">LegalAI Associates · Demo AI calls (no real phone)</span>
+  </div>
+  <div class="sheet-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>Phone</th><th>Call status</th><th>Interested</th>
+          <th>Total loan amount</th><th>Remaining loan amount</th>
+          <th>Settlement amount offered</th><th>Legal fee</th><th>Fee %</th>
+          <th>CIBIL / experience score</th><th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="log-label">Call transcript (what the AI agent said)</div>
+  <div id="log">Click Start process. The AI will “call” every person in the sheet and type the conversation here.</div>
+  <footer id="status">Ready. This works in Microsoft Edge or Google Chrome on your PC.</footer>
+
+  <script>
+    const FIRM = "LegalAI Associates";
+    const SAMPLE = [
+      ["Ramesh Nair", "9876501008"],
+      ["Priya Sharma", "9876543214"],
+      ["Rahul Verma", "9876543210"],
+      ["Ananya Iyer", "9876543211"],
+      ["Mohammed Irfan", "9876543213"],
+      ["Kavita Joshi", "9876543215"],
+      ["Suresh Patil", "9876543217"],
+      ["Neha Gupta", "9876543219"],
+      ["Amit Khanna", "9876543212"],
+    ];
+
+    let leads = [];
+    let stopFlag = false;
+    let running = false;
+
+    function emptyLead(name, phone) {
+      return {
+        name: name || "",
+        phone: phone || "",
+        call_status: "Not called",
+        interested: "",
+        total_loan_amount: "",
+        remaining_amount: "",
+        settlement_amount: "",
+        legal_fee: "",
+        fee_percent: "",
+        cibil_or_experience: "",
+        notes: "",
+      };
+    }
+
+    function digitsOf(phone) {
+      return String(phone || "").replace(/\D/g, "");
+    }
+
+    function classifyDemoOutcome(phone) {
+      const digits = digitsOf(phone);
+      if (!digits) return "no_answer";
+      const last = Number(digits.slice(-1));
+      if (last === 0) return "no_answer";
+      if (last === 1 || last === 2) return "not_interested";
+      if (last === 3) return "no_loan";
+      return "interested";
+    }
+
+    function amountsFromPhone(phone) {
+      const digits = digitsOf(phone) || "0";
+      const seed = Number(digits.length >= 4 ? digits.slice(-4) : digits);
+      const remaining = ((seed % 9) + 1) * 100000;
+      const total = remaining + (seed % 5) * 20000;
+      const cibil = 520 + (seed % 180);
+      const acceptsHigh = Number(digits.slice(-1)) % 2 === 1;
+      return { total, remaining, score: "CIBIL " + cibil, acceptsHigh };
+    }
+
+    function simulateCall(lead) {
+      const name = (lead.name || "the customer").trim();
+      const transcript = [];
+      transcript.push(
+        "AI: Hello, am I speaking with " + name + "? I am calling on behalf of " + FIRM +
+        ", a legal firm that helps people settle loans. Do you have a loan where you are having trouble paying EMIs, or have you already defaulted on the loan?"
+      );
+      const outcome = classifyDemoOutcome(lead.phone);
+      const updated = { ...lead };
+      if (outcome === "no_answer") {
+        transcript.push("System: The call was not answered.");
+        updated.call_status = "No answer";
+        updated.notes = "No answer";
+        return { updated, transcript };
+      }
+      if (outcome === "no_loan") {
+        transcript.push(name + ": I do not have a loan like that.");
+        transcript.push("AI: Thank you for your time. We will not proceed.");
+        updated.call_status = "No loan";
+        updated.interested = "No";
+        updated.notes = "Person said they do not have a troubled or defaulted loan";
+        return { updated, transcript };
+      }
+      if (outcome === "not_interested") {
+        transcript.push(name + ": I have a loan, but I am not interested in settlement.");
+        transcript.push("AI: Understood. Thank you. You may contact us later if you change your mind.");
+        updated.call_status = "Not interested";
+        updated.interested = "No";
+        updated.notes = "Has a loan but declined settlement";
+        return { updated, transcript };
+      }
+      const a = amountsFromPhone(lead.phone);
+      const feePercent = a.acceptsHigh ? 7.5 : 5;
+      const settlement = Math.round(a.remaining * 0.3 * 100) / 100;
+      const fee = Math.round(a.remaining * (feePercent / 100) * 100) / 100;
+      transcript.push(name + ": Yes. I am having trouble paying EMIs / the loan has defaulted. I am willing to settle.");
+      transcript.push("AI: Thank you. What is the total loan amount and the remaining amount, and may I note your CIBIL score or experience score?");
+      transcript.push(name + ": Total loan is ₹" + a.total + ". Remaining is ₹" + a.remaining + ". Score: " + a.score + ".");
+      transcript.push(
+        "AI: " + FIRM + " can work to settle this loan with the bank or lender within 30% of the remaining amount. For a remaining amount of ₹" +
+        a.remaining.toFixed(2) + ", that is about ₹" + settlement.toFixed(2) + " or lesser. Our legal fee would be ₹" +
+        fee.toFixed(2) + " (" + feePercent + "% of the remaining amount)."
+      );
+      if (a.acceptsHigh) {
+        transcript.push(name + ": I agree to the " + feePercent + "% legal fee and the settlement offer.");
+      } else {
+        transcript.push(name + ": I can go ahead if the legal fee is " + feePercent + "% rather than 7.5%.");
+        transcript.push("AI: We can proceed at 5% as you are willing to pay that fee.");
+      }
+      transcript.push("AI: We will prepare an agreement that the firm will settle with the bank or lender within 30% of the remaining amount.");
+      updated.call_status = "Completed";
+      updated.interested = "Yes";
+      updated.total_loan_amount = a.total.toFixed(2);
+      updated.remaining_amount = a.remaining.toFixed(2);
+      updated.settlement_amount = settlement.toFixed(2);
+      updated.legal_fee = fee.toFixed(2);
+      updated.fee_percent = String(feePercent);
+      updated.cibil_or_experience = a.score;
+      updated.notes = "Settle ₹" + settlement.toFixed(2) + " (30% of remaining ₹" + a.remaining.toFixed(2) + "). Legal fee ₹" + fee.toFixed(2) + " (" + feePercent + "%).";
+      return { updated, transcript };
+    }
+
+    function rowClass(status) {
+      if (status === "Completed") return "completed";
+      if (status === "No answer") return "noanswer";
+      if (status === "Not interested") return "notinterested";
+      if (status === "No loan") return "noloan";
+      if (status === "Calling") return "calling";
+      return "";
+    }
+
+    function render() {
+      const body = document.getElementById("rows");
+      body.innerHTML = leads.map((lead, i) => {
+        const c = rowClass(lead.call_status);
+        return `<tr class="${c}" data-i="${i}">
+          <td><input class="cell" data-f="name" value="${escapeAttr(lead.name)}" /></td>
+          <td><input class="cell" data-f="phone" value="${escapeAttr(lead.phone)}" /></td>
+          <td>${escapeHtml(lead.call_status)}</td>
+          <td>${escapeHtml(lead.interested)}</td>
+          <td>${escapeHtml(lead.total_loan_amount)}</td>
+          <td>${escapeHtml(lead.remaining_amount)}</td>
+          <td>${escapeHtml(lead.settlement_amount)}</td>
+          <td>${escapeHtml(lead.legal_fee)}</td>
+          <td>${escapeHtml(lead.fee_percent)}</td>
+          <td>${escapeHtml(lead.cibil_or_experience)}</td>
+          <td>${escapeHtml(lead.notes)}</td>
+        </tr>`;
+      }).join("");
+      body.querySelectorAll("input.cell").forEach((input) => {
+        input.addEventListener("change", () => {
+          const i = Number(input.closest("tr").dataset.i);
+          leads[i][input.dataset.f] = input.value;
+        });
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/"/g, "&quot;");
+    }
+
+    function logLines(lines) {
+      const el = document.getElementById("log");
+      el.textContent += "\n" + lines.join("\n") + "\n";
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function resetSample() {
+      leads = SAMPLE.map(([name, phone]) => emptyLead(name, phone));
+      document.getElementById("log").textContent =
+        "Sample list loaded. Click Start process. Nobody’s real phone will ring.\n";
+      document.getElementById("status").textContent = "Ready.";
+      render();
+    }
+
+    function downloadCsv() {
+      const headers = [
+        "name","phone","call_status","interested","total_loan_amount","remaining_amount",
+        "settlement_amount","legal_fee","fee_percent","cibil_or_experience","notes"
+      ];
+      const lines = [headers.join(",")];
+      for (const lead of leads) {
+        lines.push(headers.map((h) => `"${String(lead[h] || "").replace(/"/g, '""')}"`).join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "LegalAI-leads.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function startProcess() {
+      if (running) return;
+      if (!leads.some((l) => l.phone)) {
+        alert("Add at least one person with a phone number.");
+        return;
+      }
+      if (!confirm("Demo mode: the AI agent will call everyone in the sheet inside this window (no real phones). Continue?")) {
+        return;
+      }
+      running = true;
+      stopFlag = false;
+      document.getElementById("startBtn").disabled = true;
+      for (let i = 0; i < leads.length; i++) {
+        if (stopFlag) break;
+        const lead = leads[i];
+        if (!lead.phone || ["Completed", "Not interested", "No loan"].includes(lead.call_status)) continue;
+        lead.call_status = "Calling";
+        render();
+        logLines(["—— " + (lead.name || lead.phone) + " ——", "System: Dialing " + lead.phone + "…"]);
+        document.getElementById("status").textContent = "Calling " + (lead.name || lead.phone) + "…";
+        await new Promise((r) => setTimeout(r, 450));
+        const result = simulateCall(lead);
+        leads[i] = result.updated;
+        render();
+        logLines(result.transcript);
+      }
+      running = false;
+      document.getElementById("startBtn").disabled = false;
+      document.getElementById("status").textContent = "Process finished. Click Download Excel (CSV) to keep the results.";
+      logLines(["System: Campaign finished."]);
+    }
+
+    document.getElementById("startBtn").onclick = startProcess;
+    document.getElementById("stopBtn").onclick = () => { stopFlag = true; };
+    document.getElementById("resetBtn").onclick = resetSample;
+    document.getElementById("downloadBtn").onclick = downloadCsv;
+    document.getElementById("addBtn").onclick = () => {
+      const name = prompt("Name?");
+      if (name === null) return;
+      const phone = prompt("Phone number?");
+      if (phone === null) return;
+      leads.push(emptyLead(name.trim(), phone.trim()));
+      render();
+    };
+
+    resetSample();
+  </script>
+</body>
+</html>

@@ -1,10 +1,12 @@
 """HTTP API for settlement math and demo calling campaigns."""
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from app.call_agent import CampaignController
 from app.call_script import simulate_call
+from app.paths import project_root
 from app.settings import AppSettings
 from app.settlement import compute_settlement
 from app.workbook import Lead
@@ -50,6 +52,14 @@ class CampaignRequest(BaseModel):
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "legalai-calling-agent"}
+
+
+@app.get("/")
+def calling_desk():
+    page = project_root() / "web" / "index.html"
+    if not page.exists():
+        raise HTTPException(status_code=404, detail="Calling desk page is missing")
+    return FileResponse(page)
 
 
 @app.post("/api/v1/settlement/recommend", response_model=SettlementResponse)

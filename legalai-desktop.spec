@@ -16,7 +16,10 @@ hiddenimports = [
     "app.paths",
     "openpyxl",
 ]
-datas = [(str(project_root / "data" / "sample_leads.csv"), "data")]
+datas = [
+    (str(project_root / "data" / "sample_leads.csv"), "data"),
+    (str(project_root / "web" / "index.html"), "web"),
+]
 
 a = Analysis(
     [str(project_root / "run_desktop.py")],

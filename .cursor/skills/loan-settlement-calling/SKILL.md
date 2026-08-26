@@ -20,14 +20,17 @@ They get name and number of the person they are calling. Then they call them and
 
 ## Product the agent must preserve
 
-Windows desktop app (`run_desktop.py` / `LegalAI.exe`):
+Primary way staff run it on a PC: `web/index.html` / `DOUBLE-CLICK-TO-TEST.bat` (no Python).
 
-1. Opens an Excel-like sheet of people to call (name + number).
-2. User clicks **Start process**.
-3. The AI agent calls each pending number (demo conversation by default; optional Twilio live dial).
-4. After each call the same sheet row is updated: interested or not; if yes, total loan amount, remaining loan amount, settlement amount offered, legal fee, CIBIL/experience score.
+Also keep:
+
+- Tkinter window via `run_desktop.py --window`
+- Demo AI filling the sheet after **Start process**
+- Settlement at most 30% of remaining; fee 5–7.5%
 
 Do not turn this back into a single-loan calculator screen as the main UI.
+
+Windows staff: double-click `DOUBLE-CLICK-TO-TEST.bat` or open `web/index.html`. See `START-HERE.txt` and `docs/USER_GUIDE.md`.
 
 ## Numbers (do not invent new defaults)
 
@@ -59,7 +62,7 @@ Last digit of the phone number:
 .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Windows staff: `windows/Install-LegalAI.bat` then `windows/Start-LegalAI.bat`. Plain-language steps live in `docs/USER_GUIDE.md`.
+Windows staff: double-click `DOUBLE-CLICK-TO-TEST.bat` or open `web/index.html`. See `START-HERE.txt` and `docs/USER_GUIDE.md`.
 
 ## Guardrails
 

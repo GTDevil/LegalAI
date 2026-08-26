@@ -1,34 +1,19 @@
 # LegalAI — loan settlement calling desk
 
-Windows program for a legal firm that settles loans. It shows an **Excel-like sheet** of names and numbers. When you click **Start process**, an **AI agent** calls through the list and writes back interest, loan amounts, a **30% (or lesser) settlement offer**, and a **5%–7.5% legal fee**.
+Excel-like sheet of names and numbers. **Start process** runs the AI agent and fills settlement (30% of remaining) and legal fee (5%–7.5%).
 
-**Non-technical install, test, and copy-to-another-PC steps:** see [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
+## Test on your PC right now (no Python)
 
----
+1. Double-click **`DOUBLE-CLICK-TO-TEST.bat`**
+2. Click **Start process**
+3. Confirm **Ramesh Nair** shows remaining 100000, settlement 30000, fee 5000
+4. Click **Download Excel (CSV)**
 
-## What you see after opening the app
+Or double-click `web/index.html` in Edge or Chrome.
 
-- A sheet with Name, Phone, Call status, Interested, Total loan, Remaining, Settlement offered, Legal fee, CIBIL/experience, Notes
-- **Start process** / **Stop**
-- Open and save Excel (`.xlsx`) or CSV
-- **Settings** (firm name, demo vs Twilio)
+Full staff steps: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) and `START-HERE.txt`.
 
-Example: remaining ₹1,00,000 → settlement ₹30,000 or lesser; fee ₹5,000 or ₹7,500.
-
-Default mode is **Demo** (no real ringing). Use it to train staff. Live ringing needs Twilio credentials in Settings.
-
----
-
-## Windows — no coding
-
-1. GitHub **Actions** → **Build Windows EXE** → latest green run → download **LegalAI-windows-exe**
-2. Unzip and double-click **LegalAI.exe**
-3. Click **Start process**
-
-Or copy this project folder to the PC, install Python 3.12 (tick **Add to PATH**), then:
-
-1. `windows\Install-LegalAI.bat`
-2. `windows\Start-LegalAI.bat`
+Demo mode does not ring real phones. That is how you test the agent.
 
 ---
 
@@ -37,34 +22,17 @@ Or copy this project folder to the PC, install Python 3.12 (tick **Add to PATH**
 ```bash
 ./.cursor/scripts/install.sh
 .venv/bin/pytest -v
-.venv/bin/python run_desktop.py
+.venv/bin/python run_desktop.py --window
 .venv/bin/python -m app.cli --input data/sample_leads.csv --output /tmp/leads-out.xlsx
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-./scripts/build_exe.sh
+.venv/bin/python run_web.py
 ```
 
 Cursor skill: `.cursor/skills/loan-settlement-calling/SKILL.md`.
 
----
-
-## Project layout
-
 | Path | Role |
 | --- | --- |
-| `app/desktop_ui.py` | Excel-like calling desk |
+| `web/index.html` | No-install calling desk (double-click) |
+| `DOUBLE-CLICK-TO-TEST.bat` | Opens that page on Windows |
+| `app/desktop_ui.py` | Optional Tkinter window (`--window`) |
 | `app/call_script.py` | Call script and demo conversations |
-| `app/call_agent.py` | Campaign runner (demo + Twilio) |
-| `app/settlement.py` | 30% settlement and 5–7.5% fee |
-| `app/workbook.py` | Load/save xlsx and csv |
-| `data/sample_leads.csv` | Practice names and numbers |
 | `docs/USER_GUIDE.md` | Staff instructions |
-| `windows/*.bat` | Install and start on Windows |
-
----
-
-## API (optional)
-
-- `GET /health`
-- `POST /api/v1/settlement/recommend` — `remaining_amount`, `fee_percent` (5–7.5), `settlement_percent` (≤30)
-- `POST /api/v1/calls/simulate` — one demo call
-- `POST /api/v1/campaign/demo` — demo campaign on a list of leads
