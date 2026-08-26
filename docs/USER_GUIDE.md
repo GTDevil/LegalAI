@@ -7,16 +7,27 @@ You do **not** need to be a programmer. You do **not** need Python for the test 
 1. On your computer, open the LegalAI folder (the folder that contains `DOUBLE-CLICK-TO-TEST.bat`).
 2. Double-click **`DOUBLE-CLICK-TO-TEST.bat`**.
 3. Microsoft Edge or Chrome should open the calling desk.
-4. Click the blue button **Start process**, then click **OK**.
-5. Wait about 10 seconds. Rows change colour and numbers appear.
-6. Check **Ramesh Nair**: remaining **100000**, settlement **30000**, legal fee **5000**.
-7. Click **Download Excel (CSV)** and open that file in Excel.
+4. Language is **हिन्दी** by default. Keep **Speak / बोलें** on to hear the agent.
+5. Add numbers in bulk with **Import file**, **Import from link**, or **Paste numbers**.
+6. Click **Start process / प्रक्रिया शुरू करें**, then OK.
+7. Check **Ramesh Nair**: remaining **100000**, settlement **30000**, legal fee **5000**.
+8. Click **Download Excel (CSV)** and open that file in Excel.
 
 If the `.bat` file does nothing: open the `web` folder and double-click **`index.html`**.
 
 If Windows says it blocked the file: right-click `DOUBLE-CLICK-TO-TEST.bat` → **Properties** → tick **Unblock** → **OK**, then double-click again.
 
-## What you are testing
+## Add many numbers at once
+
+- **Import file:** CSV or text. First row can be `name,phone` (or `mobile` / `number`).
+- **Import from link:** paste an `https` CSV URL, or a Google Sheet link (use **File → Share → Publish to web** if the sheet is private). Best when the desk is opened via the app (`http://127.0.0.1:8000`), not only as a saved HTML file.
+- **Paste numbers:** one line per person, `Name, 98765…` or only the phone.
+
+Turn on **Replace list** if the file should wipe the current sheet instead of adding to it.
+
+## Hindi speech
+
+Choose **हिन्दी**. Tick **Speak / बोलें**. Windows Edge/Chrome usually includes an Indian Hindi voice. If you hear nothing, the transcript still shows Hindi; install a Hindi speech voice in Windows Settings → Time & language → Speech.
 
 This is **Demo mode**. The AI agent speaks in the transcript box and fills the sheet. **Real phones do not ring.** That is the correct way to test the calling agent on your PC.
 

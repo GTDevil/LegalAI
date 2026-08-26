@@ -18,7 +18,10 @@ def test_html_is_self_contained():
     assert "Ramesh Nair" in HTML
     assert "9876501008" in HTML
     assert "classifyDemoOutcome" in HTML
-    assert "<script" in HTML
+    assert "parseLeadsFromText" in HTML
+    assert "Import from link" in HTML
+    assert "हिन्दी" in HTML
+    assert "speechSynthesis" in HTML
     assert calling_desk_html().exists()
 
 

@@ -3,10 +3,10 @@ LegalAI — test on YOUR computer (no coding)
 1. Double-click DOUBLE-CLICK-TO-TEST.bat
    OR open the file web\index.html in Microsoft Edge or Google Chrome.
 
-2. On the page, click the blue button "Start process", then click OK.
-
-3. Wait about 10 seconds. The sheet fills itself.
-   Ramesh Nair should show remaining 100000, settlement 30000, fee 5000.
+2. On the page, set Language to **हिन्दी** (already selected). Keep **Speak / बोलें** ticked if you want to hear the agent.
+3. To add many numbers: **Import file** (CSV with Name, Phone) or **Import from link** (Google Sheet / CSV https link) or **Paste numbers**.
+4. Click **Start process / प्रक्रिया शुरू करें**, then OK.
+5. Check **Ramesh Nair**: remaining 100000, settlement 30000, fee 5000. You should hear Hindi if your PC has a Hindi voice (Edge/Chrome).
 
 4. Click "Download Excel (CSV)" and open that file in Excel.
 

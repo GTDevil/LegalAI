@@ -9,6 +9,7 @@ from app.call_script import simulate_call
 from app.paths import project_root
 from app.settings import AppSettings
 from app.settlement import compute_settlement
+from app.url_fetch import fetch_public_text, normalize_sheet_url
 from app.workbook import Lead
 
 app = FastAPI(
@@ -49,6 +50,10 @@ class CampaignRequest(BaseModel):
     firm_name: str = "LegalAI Associates"
 
 
+class ImportUrlRequest(BaseModel):
+    url: str = Field(min_length=8, description="https link to a CSV or Google Sheet")
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "legalai-calling-agent"}
@@ -84,6 +89,17 @@ def simulate(request: SimulateCallRequest) -> dict:
         "transcript": result.transcript,
         "lead": lead.display_values(),
     }
+
+
+@app.post("/api/v1/import/from-url")
+def import_from_url(request: ImportUrlRequest) -> dict:
+    try:
+        text = fetch_public_text(normalize_sheet_url(request.url))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Could not download that link") from exc
+    return {"text": text}
 
 
 @app.post("/api/v1/campaign/demo")

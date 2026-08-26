@@ -5,9 +5,11 @@ Excel-like sheet of names and numbers. **Start process** runs the AI agent and f
 ## Test on your PC right now (no Python)
 
 1. Double-click **`DOUBLE-CLICK-TO-TEST.bat`**
-2. Click **Start process**
-3. Confirm **Ramesh Nair** shows remaining 100000, settlement 30000, fee 5000
-4. Click **Download Excel (CSV)**
+2. Keep language **हिन्दी** and **Speak / बोलें** on
+3. Add extra numbers with **Import file**, **Import from link**, or **Paste numbers**
+4. Click **Start process**
+5. Confirm **Ramesh Nair** shows remaining 100000, settlement 30000, fee 5000
+6. Click **Download Excel (CSV)**
 
 Or double-click `web/index.html` in Edge or Chrome.
 

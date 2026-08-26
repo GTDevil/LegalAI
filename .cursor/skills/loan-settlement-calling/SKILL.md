@@ -25,8 +25,8 @@ Primary way staff run it on a PC: `web/index.html` / `DOUBLE-CLICK-TO-TEST.bat` 
 Also keep:
 
 - Tkinter window via `run_desktop.py --window`
-- Demo AI filling the sheet after **Start process**
-- Settlement at most 30% of remaining; fee 5–7.5%
+- Hindi speech in the browser desk (`speechSynthesis`, language हिन्दी)
+- Bulk add from CSV file, paste, or https/Google Sheet link (`parseLeadsFromText`, `/api/v1/import/from-url`)
 
 Do not turn this back into a single-loan calculator screen as the main UI.
 
