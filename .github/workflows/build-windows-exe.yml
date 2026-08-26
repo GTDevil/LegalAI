@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: env
+      - name:
       - run: python -m venv .venv
 
       - name: Build executable
