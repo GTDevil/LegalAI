@@ -66,6 +66,12 @@ On the calling desk click **Live setup**, fill `.env` from `.env.example`, start
 
 Demo mode does not call mobiles. Real ringing needs a Twilio account, money per minute, and numbers you are allowed to call. Use Demo mode until the sheet and transcript work. Then a technical person can put Twilio keys in the Python app **Settings**.
 
+## Android phone (APK)
+
+Same desk on Android. Calls use the **Phone app**. Numbers/status sync with **TeleCRM** using your API token. **WhatsApp** opens a settlement message that you send.
+
+See [docs/ANDROID.md](ANDROID.md). Build: GitHub Actions → **Build Android APK** → `app-debug.apk`.
+
 ## If it still will not open
 
 - Use **Edge** or **Chrome**, not Internet Explorer.

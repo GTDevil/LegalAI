@@ -44,7 +44,9 @@
     input.cell:focus { border-color: var(--accent); background: #fff; outline: none; }
     .log-label { padding: 12px 20px 4px; color: var(--muted); font-size: 13px; }
     #log { margin: 0 20px 16px; height: 200px; overflow: auto; background: #fff; border-radius: 8px; padding: 12px; font-size: 13px; white-space: pre-wrap; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-    footer { padding: 0 20px 20px; color: var(--muted); font-size: 13px; }
+    .android-only { display: none; }
+    body.android .android-only { display: flex; }
+    .android-banner { background: #eff6ff; border-color: #93c5fd; color: #1e3a8a; }
   </style>
 </head>
 <body>
@@ -57,6 +59,10 @@
     नंबर जोड़ने के लिए <b>Import file</b> या <b>Import from link</b>।
     डेमो में असली फ़ोन नहीं बजता। Ramesh Nair: remaining 100000, settlement 30000, fee 5000.
   </div>
+  <div class="banner android-banner android-only">
+    Android: <b>Call</b> opens the Phone app. <b>WhatsApp</b> opens a message you send yourself.
+    <b>TeleCRM</b> pulls numbers and pushes status with your API token.
+  </div>
   <div class="toolbar">
     <button class="primary" id="startBtn" type="button">Start process / प्रक्रिया शुरू करें</button>
     <button id="stopBtn" type="button">Stop</button>
@@ -64,6 +70,12 @@
     <button id="resetBtn" type="button">Reset sample list</button>
     <button id="downloadBtn" type="button">Download Excel (CSV)</button>
     <button id="liveBtn" type="button">Live setup / असली कॉल</button>
+    <button class="android-only" id="callBtn" type="button">Call / फ़ोन ऐप</button>
+    <button class="android-only" id="waBtn" type="button">WhatsApp</button>
+    <button class="android-only" id="crmPullBtn" type="button">Pull TeleCRM</button>
+    <button class="android-only" id="crmPushBtn" type="button">Update TeleCRM</button>
+    <button class="android-only" id="crmOpenBtn" type="button">Open TeleCRM app</button>
+    <button class="android-only" id="crmSetupBtn" type="button">TeleCRM setup</button>
     <span style="margin-left:auto;color:#6b7280;font-size:13px">LegalAI Associates · Demo (no real phone)</span>
   </div>
   <div class="import-bar">
@@ -113,6 +125,17 @@
       <button id="liveCancel" type="button">Close</button>
     </div>
   </div>
+  <div id="crmPanel" class="panel">
+    <h3>TeleCRM API (from TeleCRM → Integrations → Website)</h3>
+    <p>Paste the Async <b>update</b> URL, optional Sync/search <b>pull</b> URL, and Bearer token. Stored only on this phone.</p>
+    <input id="crmPushUrl" type="url" placeholder="https://….telecrm.in/…. autoupdatelead URL" />
+    <div class="row"><input id="crmPullUrl" type="url" placeholder="Optional: GET/search URL to receive numbers" /></div>
+    <div class="row"><input id="crmToken" type="password" placeholder="Bearer token" /></div>
+    <div class="row">
+      <button class="primary" id="crmSave" type="button">Save</button>
+      <button id="crmCancel" type="button">Close</button>
+    </div>
+  </div>
   <div id="pastePanel" class="panel">
     <div>One person per line: <code>Name, Phone</code> — or only a phone number.</div>
     <textarea id="pasteBox" placeholder="Ramesh Nair, 9876501008&#10;Priya Sharma, 9876543214&#10;9000000004"></textarea>
@@ -152,9 +175,11 @@
       ["Amit Khanna", "9876543212"],
     ];
 
-    let leads = [];
-    let stopFlag = false;
-    let running = false;
+    let selectedIndex = 0;
+
+    function nativeApp() {
+      return typeof LegalAINative !== "undefined" && LegalAINative.isNative && LegalAINative.isNative();
+    }
 
     function langMode() { return document.getElementById("langSelect").value; }
     function speakEnabled() { return document.getElementById("speakOn").checked; }
@@ -433,7 +458,7 @@
       const body = document.getElementById("rows");
       body.innerHTML = leads.map((lead, i) => {
         const c = rowClass(lead.call_status);
-        return `<tr class="${c}" data-i="${i}">
+        return `<tr class="${c}" data-i="${i}" onclick="selectRow(${i})">
           <td><input class="cell" data-f="name" value="${escapeAttr(lead.name)}" /></td>
           <td><input class="cell" data-f="phone" value="${escapeAttr(lead.phone)}" /></td>
           <td>${escapeHtml(lead.call_status)}</td>
@@ -645,6 +670,88 @@
         document.getElementById("status").textContent = "Import from link failed.";
       }
     };
+
+    function selectRow(i) { selectedIndex = i; }
+
+    function selectedLead() {
+      return leads[selectedIndex] || leads.find((l) => l.phone) || emptyLead("", "");
+    }
+
+    function settlementWhatsAppText(lead) {
+      const remaining = parseFloat(lead.remaining_amount);
+      const feePct = parseFloat(lead.fee_percent) || 5;
+      const name = lead.name || "ji";
+      if (!remaining || remaining <= 0) {
+        if (langMode() === "en") {
+          return "Hello " + name + ", this is " + FIRM + ". Please share your remaining loan amount so we can confirm a settlement within 30% and a legal fee of 5–7.5%.";
+        }
+        return "नमस्ते " + name + ", " + FIRM + " से संपर्क है। बचे हुए लोन की राशि भेजें ताकि हम 30% के भीतर सेटलमेंट और 5–7.5% फीस बता सकें।";
+      }
+      const settlement = Math.round(remaining * 0.3 * 100) / 100;
+      const fee = Math.round(remaining * (feePct / 100) * 100) / 100;
+      if (langMode() === "en") {
+        return "Hello " + name + ", this is " + FIRM + ". For remaining loan ₹" + remaining.toFixed(2) +
+          ", we can work to settle at about ₹" + settlement.toFixed(2) + " (within 30%) and a legal fee of ₹" +
+          fee.toFixed(2) + " (" + feePct + "%). Please confirm if you wish to proceed.";
+      }
+      return "नमस्ते " + name + ", " + FIRM + " से संपर्क है। बचे हुए लोन ₹" + remaining.toFixed(2) +
+        " पर सेटलमेंट लगभग ₹" + settlement.toFixed(2) + " (30% के भीतर) और कानूनी फीस ₹" + fee.toFixed(2) +
+        " (" + feePct + "%) है। अगर आगे बढ़ना हो तो कृपया पुष्टि करें।";
+    }
+
+    window.onTeleCrmLeads = function (rawText) {
+      let parsed;
+      try { parsed = JSON.parse(rawText); } catch (err) { alert("TeleCRM returned text that is not JSON"); return; }
+      const rows = Array.isArray(parsed) ? parsed : (parsed.leads || parsed.data || parsed.results || parsed.items || [parsed]);
+      const incoming = [];
+      (rows || []).forEach((item) => {
+        const fields = item && item.fields ? item.fields : item;
+        if (!fields) return;
+        const map = {};
+        Object.keys(fields).forEach((k) => { map[k.toLowerCase()] = fields[k]; });
+        const name = String(map.name || map.naam || "");
+        const phone = String(map.phone || map.mobile || map.number || map["phone number"] || "");
+        if (digitsOf(phone).length >= 10) incoming.push(emptyLead(name.trim(), phone.trim()));
+      });
+      if (!incoming.length) { alert("No phone numbers in TeleCRM response. Check the pull URL."); return; }
+      const added = mergeLeads(incoming);
+      render();
+      document.getElementById("status").textContent = "Pulled " + added + " number(s) from TeleCRM.";
+    };
+
+    if (nativeApp()) {
+      document.body.classList.add("android");
+      document.getElementById("callBtn").onclick = () => LegalAINative.dial(selectedLead().phone || "");
+      document.getElementById("waBtn").onclick = () => {
+        const lead = selectedLead();
+        if (!lead.phone) { alert("Select a row with a phone number."); return; }
+        LegalAINative.whatsapp(lead.phone, settlementWhatsAppText(lead));
+      };
+      document.getElementById("crmOpenBtn").onclick = () => LegalAINative.openTeleCrmApp();
+      document.getElementById("crmPullBtn").onclick = () => LegalAINative.pullLeadsFromTeleCrm();
+      document.getElementById("crmPushBtn").onclick = () => {
+        const lead = selectedLead();
+        if (!lead.phone) { alert("Select a row first."); return; }
+        LegalAINative.pushLeadToTeleCrm(JSON.stringify(lead));
+      };
+      document.getElementById("crmSetupBtn").onclick = () => {
+        document.getElementById("crmPanel").classList.add("open");
+        try {
+          const saved = JSON.parse(LegalAINative.loadTeleCrmSettings());
+          document.getElementById("crmPushUrl").value = saved.pushUrl || "";
+          document.getElementById("crmPullUrl").value = saved.pullUrl || "";
+        } catch (err) { /* ignore */ }
+      };
+      document.getElementById("crmCancel").onclick = () => document.getElementById("crmPanel").classList.remove("open");
+      document.getElementById("crmSave").onclick = () => {
+        LegalAINative.saveTeleCrmSettings(
+          document.getElementById("crmPushUrl").value,
+          document.getElementById("crmPullUrl").value,
+          document.getElementById("crmToken").value
+        );
+        document.getElementById("crmPanel").classList.remove("open");
+      };
+    }
 
     if (window.speechSynthesis) {
       speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();

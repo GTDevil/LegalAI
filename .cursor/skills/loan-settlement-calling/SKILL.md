@@ -27,7 +27,7 @@ Also keep:
 - Tkinter window via `run_desktop.py --window`
 - Live real calls only after TRAI/DND-compliant consent, Vapi keys in `.env`, and `http://127.0.0.1:8000`. Neural Indian voices: Swara (woman), Madhur (man). See `docs/LIVE_CALLING.md`.
 - Hindi speech in the browser desk (`speechSynthesis`, language हिन्दी)
-- Bulk add from CSV file, paste, or https/Google Sheet link (`parseLeadsFromText`, `/api/v1/import/from-url`)
+- Android APK (`android/`): Phone app dialer, TeleCRM API pull/push, WhatsApp click-to-chat for settlement text. See `docs/ANDROID.md`. GitHub Action **Build Android APK**.
 
 Do not turn this back into a single-loan calculator screen as the main UI.
 

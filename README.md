@@ -17,6 +17,8 @@ Full staff steps: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) and `START-HERE.txt`.
 
 Demo mode does not ring real phones. For a live Indian-sounding call, see [docs/LIVE_CALLING.md](docs/LIVE_CALLING.md).
 
+**Android APK:** [docs/ANDROID.md](docs/ANDROID.md) — Phone app calls, TeleCRM numbers/status, WhatsApp settlement messages. GitHub Action **Build Android APK**.
+
 ---
 
 ## Developers / Cursor Cloud

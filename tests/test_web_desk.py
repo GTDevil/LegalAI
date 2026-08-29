@@ -24,6 +24,7 @@ def test_html_is_self_contained():
     assert "speechSynthesis" in HTML
     assert "Live setup" in HTML
     assert "hi-IN-SwaraNeural" in HTML or "Swara" in HTML
+    assert "LegalAINative" in HTML
     assert calling_desk_html().exists()
 
 
