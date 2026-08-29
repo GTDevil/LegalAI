@@ -1,4 +1,4 @@
-package in.legalai.desk
+package com.legalai.desk
 
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException

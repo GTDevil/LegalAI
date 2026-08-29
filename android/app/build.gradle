@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace "in.legalai.desk"
+    namespace "com.legalai.desk"
     compileSdk 34
 
     defaultConfig {
-        applicationId "in.legalai.desk"
+        applicationId "com.legalai.desk"
         minSdk 26
         targetSdk 34
         versionCode 1
