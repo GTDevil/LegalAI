@@ -1,0 +1,18 @@
+LegalAI — test on YOUR computer (no coding)
+
+1. Double-click DOUBLE-CLICK-TO-TEST.bat
+   OR open the file web\index.html in Microsoft Edge or Google Chrome.
+
+2. On the page, set Language to **हिन्दी** (already selected). Keep **Speak / बोलें** ticked if you want to hear the agent.
+3. To add many numbers: **Import file** (CSV with Name, Phone) or **Import from link** (Google Sheet / CSV https link) or **Paste numbers**.
+4. Click **Start process / प्रक्रिया शुरू करें**, then OK.
+5. Check **Ramesh Nair**: remaining 100000, settlement 30000, fee 5000. You should hear Hindi if your PC has a Hindi voice (Edge/Chrome).
+
+4. Click "Download Excel (CSV)" and open that file in Excel.
+
+This is Demo mode: the AI agent talks in the window. Real mobile phones do not ring.
+For a real call with a natural Indian woman/man voice, open docs\LIVE_CALLING.md
+and click Live setup on the calling desk.
+
+If Windows blocks the .bat file: right-click it → Properties → Unblock → OK, then double-click again.
+If a browser warning appears for local files, use Edge or Chrome (not an old Internet Explorer).

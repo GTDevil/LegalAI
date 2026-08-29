@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LegalAI — Loan Settlement Calling Agent</title>
+  <style>
+    :root {
+      --bg: #eef2f7; --primary: #12355b; --accent: #1d4ed8;
+      --text: #111827; --muted: #6b7280; --card: #fff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "Noto Sans Devanagari", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    header { padding: 16px 20px 8px; }
+    h1 { margin: 0; color: var(--primary); font-size: 22px; }
+    .sub { color: var(--muted); margin: 6px 0 12px; }
+    .banner { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; padding: 10px 14px; margin: 0 20px 12px; border-radius: 8px; font-size: 14px; }
+    .toolbar, .import-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 12px; align-items: center; }
+    .import-bar { padding-top: 0; }
+    label.opt { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+    select { font: 14px "Segoe UI", sans-serif; padding: 6px 8px; border-radius: 6px; border: 1px solid #d1d5db; }
+    button { font: 14px/1 "Segoe UI", "Noto Sans Devanagari", sans-serif; border: 0; border-radius: 6px; padding: 10px 14px; cursor: pointer; background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    button.primary { background: var(--accent); color: #fff; font-weight: 700; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .panel { display: none; margin: 0 20px 12px; background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .panel.open { display: block; }
+    .panel h3 { margin: 0 0 8px; font-size: 16px; color: var(--primary); }
+    .panel ol { margin: 8px 0 0 18px; padding: 0; font-size: 14px; color: var(--text); }
+    .panel li { margin: 6px 0; }
+    .ready { color: #047857; font-weight: 700; }
+    .notready { color: #b45309; font-weight: 700; }
+    .panel textarea, .panel input[type=url] { width: 100%; font: 14px/1.4 "Segoe UI", sans-serif; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+    .panel textarea { min-height: 110px; }
+    .panel .row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+    .sheet-wrap { margin: 0 20px; overflow: auto; background: var(--card); border-radius: 8px; max-height: 42vh; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 1200px; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; white-space: nowrap; }
+    th { background: #f8fafc; position: sticky; top: 0; z-index: 1; }
+    tr.completed { background: #bbf7d0; }
+    tr.noanswer { background: #e5e7eb; }
+    tr.notinterested, tr.noloan { background: #fee2e2; }
+    tr.calling { background: #fef3c7; }
+    input.cell { width: 100%; min-width: 90px; border: 1px solid transparent; font: inherit; background: transparent; padding: 4px; }
+    input.cell:focus { border-color: var(--accent); background: #fff; outline: none; }
+    .log-label { padding: 12px 20px 4px; color: var(--muted); font-size: 13px; }
+    #log { margin: 0 20px 16px; height: 200px; overflow: auto; background: #fff; border-radius: 8px; padding: 12px; font-size: 13px; white-space: pre-wrap; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .android-only { display: none; }
+    body.android .android-only { display: flex; }
+    .android-banner { background: #eff6ff; border-color: #93c5fd; color: #1e3a8a; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LegalAI calling desk</h1>
+    <p class="sub">Excel जैसी शीट। <b>Start process</b> दबाएँ — एजेंट हिंदी में बोल सकता है, और नंबर फाइल या लिंक से एक साथ जुड़ते हैं।</p>
+  </header>
+  <div class="banner">
+    Python की ज़रूरत नहीं। भाषा <b>हिन्दी</b> चुनें और <b>Speak / बोलें</b> चालू रखें।
+    नंबर जोड़ने के लिए <b>Import file</b> या <b>Import from link</b>।
+    डेमो में असली फ़ोन नहीं बजता। Ramesh Nair: remaining 100000, settlement 30000, fee 5000.
+  </div>
+  <div class="banner android-banner android-only">
+    Android: <b>Call</b> opens the Phone app. <b>WhatsApp</b> opens a message you send yourself.
+    <b>TeleCRM</b> pulls numbers and pushes status with your API token.
+  </div>
+  <div class="toolbar">
+    <button class="primary" id="startBtn" type="button">Start process / प्रक्रिया शुरू करें</button>
+    <button id="stopBtn" type="button">Stop</button>
+    <button id="addBtn" type="button">Add person</button>
+    <button id="resetBtn" type="button">Reset sample list</button>
+    <button id="downloadBtn" type="button">Download Excel (CSV)</button>
+    <button id="liveBtn" type="button">Live setup / असली कॉल</button>
+    <button class="android-only" id="callBtn" type="button">Call / फ़ोन ऐप</button>
+    <button class="android-only" id="waBtn" type="button">WhatsApp</button>
+    <button class="android-only" id="crmPullBtn" type="button">Pull TeleCRM</button>
+    <button class="android-only" id="crmPushBtn" type="button">Update TeleCRM</button>
+    <button class="android-only" id="crmOpenBtn" type="button">Open TeleCRM app</button>
+    <button class="android-only" id="crmSetupBtn" type="button">TeleCRM setup</button>
+    <span style="margin-left:auto;color:#6b7280;font-size:13px">LegalAI Associates · Demo (no real phone)</span>
+  </div>
+  <div class="import-bar">
+    <button id="fileBtn" type="button">Import file / फ़ाइल से जोड़ें</button>
+    <input id="fileInput" type="file" accept=".csv,.txt,.tsv,text/csv" hidden />
+    <button id="linkBtn" type="button">Import from link / लिंक से जोड़ें</button>
+    <button id="pasteBtn" type="button">Paste numbers / नंबर चिपकाएँ</button>
+    <label class="opt">Language / भाषा
+      <select id="langSelect">
+        <option value="hi" selected>हिन्दी</option>
+        <option value="en">English</option>
+        <option value="both">हिन्दी + English</option>
+      </select>
+    </label>
+    <label class="opt"><input id="speakOn" type="checkbox" checked /> Speak / बोलें</label>
+    <label class="opt"><input id="replaceOn" type="checkbox" /> Replace list / पूरी सूची बदलें</label>
+    <label class="opt"><input id="liveMode" type="checkbox" /> Live real call / असली कॉल</label>
+    <label class="opt">Voice / आवाज़
+      <select id="voiceSelect">
+        <option value="woman" selected>Indian woman / महिला</option>
+        <option value="man">Indian man / पुरुष</option>
+      </select>
+    </label>
+  </div>
+  <div id="linkPanel" class="panel">
+    <div>Paste a Google Sheet or CSV link (https). Published sheets work best.</div>
+    <div class="row">
+      <input id="linkUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/... or https://example.com/leads.csv" />
+      <button class="primary" id="linkGo" type="button">Load link</button>
+      <button id="linkCancel" type="button">Close</button>
+    </div>
+  </div>
+  <div id="livePanel" class="panel">
+    <h3>Before a real call / असली कॉल से पहले</h3>
+    <p id="liveReadyLine" class="notready">Checking live setup…</p>
+    <p>The demo voice on this PC is only for practice. A live call uses a neural Indian woman (Swara) or man (Madhur) voice through Vapi, so it sounds like a person on the phone.</p>
+    <ol>
+      <li>Permission to call that person (TRAI / DND — ask your lawyer).</li>
+      <li>Prepaid credit, and a number that can dial +91.</li>
+      <li>A Vapi account: put <code>VAPI_API_KEY</code> and <code>VAPI_PHONE_NUMBER_ID</code> in a <code>.env</code> file (copy <code>.env.example</code>).</li>
+      <li>Open this desk at <code>http://127.0.0.1:8000</code> (Start-LegalAI.bat or run_web.py), not only as a saved HTML file.</li>
+      <li>First live test: one phone that <b>you</b> own. Then tick <b>Live real call</b>.</li>
+    </ol>
+    <p>Full checklist: see <code>docs/LIVE_CALLING.md</code> in the project folder.</p>
+    <div class="row">
+      <button id="liveRefresh" type="button">Check again</button>
+      <button id="liveCancel" type="button">Close</button>
+    </div>
+  </div>
+  <div id="crmPanel" class="panel">
+    <h3>TeleCRM API (from TeleCRM → Integrations → Website)</h3>
+    <p>Paste the Async <b>update</b> URL, optional Sync/search <b>pull</b> URL, and Bearer token. Stored only on this phone.</p>
+    <input id="crmPushUrl" type="url" placeholder="https://….telecrm.in/…. autoupdatelead URL" />
+    <div class="row"><input id="crmPullUrl" type="url" placeholder="Optional: GET/search URL to receive numbers" /></div>
+    <div class="row"><input id="crmToken" type="password" placeholder="Bearer token" /></div>
+    <div class="row">
+      <button class="primary" id="crmSave" type="button">Save</button>
+      <button id="crmCancel" type="button">Close</button>
+    </div>
+  </div>
+  <div id="pastePanel" class="panel">
+    <div>One person per line: <code>Name, Phone</code> — or only a phone number.</div>
+    <textarea id="pasteBox" placeholder="Ramesh Nair, 9876501008&#10;Priya Sharma, 9876543214&#10;9000000004"></textarea>
+    <div class="row">
+      <button class="primary" id="pasteGo" type="button">Add to sheet</button>
+      <button id="pasteCancel" type="button">Close</button>
+    </div>
+  </div>
+  <div class="sheet-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>Phone</th><th>Call status</th><th>Interested</th>
+          <th>Total loan amount</th><th>Remaining loan amount</th>
+          <th>Settlement amount offered</th><th>Legal fee</th><th>Fee %</th>
+          <th>CIBIL / experience score</th><th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="log-label">Call transcript / कॉल का ब्यौरा (एजेंट क्या बोला)</div>
+  <div id="log">Start process दबाएँ। एजेंट हिंदी में बात करेगा (अगर Speak चालू है तो आवाज़ भी सुनाई देगी)।</div>
+  <footer id="status">Ready.</footer>
+
+  <script>
+    const FIRM = "LegalAI Associates";
+    const SAMPLE = [
+      ["Ramesh Nair", "9876501008"],
+      ["Priya Sharma", "9876543214"],
+      ["Rahul Verma", "9876543210"],
+      ["Ananya Iyer", "9876543211"],
+      ["Mohammed Irfan", "9876543213"],
+      ["Kavita Joshi", "9876543215"],
+      ["Suresh Patil", "9876543217"],
+      ["Neha Gupta", "9876543219"],
+      ["Amit Khanna", "9876543212"],
+    ];
+
+    let selectedIndex = 0;
+
+    function nativeApp() {
+      return typeof LegalAINative !== "undefined" && LegalAINative.isNative && LegalAINative.isNative();
+    }
+
+    function langMode() { return document.getElementById("langSelect").value; }
+    function speakEnabled() { return document.getElementById("speakOn").checked; }
+
+    function emptyLead(name, phone) {
+      return {
+        name: name || "", phone: phone || "", call_status: "Not called", interested: "",
+        total_loan_amount: "", remaining_amount: "", settlement_amount: "", legal_fee: "",
+        fee_percent: "", cibil_or_experience: "", notes: "",
+      };
+    }
+
+    function digitsOf(phone) { return String(phone || "").replace(/\D/g, ""); }
+
+    function classifyDemoOutcome(phone) {
+      const digits = digitsOf(phone);
+      if (!digits) return "no_answer";
+      const last = Number(digits.slice(-1));
+      if (last === 0) return "no_answer";
+      if (last === 1 || last === 2) return "not_interested";
+      if (last === 3) return "no_loan";
+      return "interested";
+    }
+
+    function amountsFromPhone(phone) {
+      const digits = digitsOf(phone) || "0";
+      const seed = Number(digits.length >= 4 ? digits.slice(-4) : digits);
+      const remaining = ((seed % 9) + 1) * 100000;
+      const total = remaining + (seed % 5) * 20000;
+      const cibil = 520 + (seed % 180);
+      const acceptsHigh = Number(digits.slice(-1)) % 2 === 1;
+      return { total, remaining, score: "CIBIL " + cibil, acceptsHigh };
+    }
+
+    function line(hi, en) {
+      const mode = langMode();
+      if (mode === "hi") return hi;
+      if (mode === "en") return en;
+      return hi + "\n" + en;
+    }
+
+    function simulateCall(lead) {
+      const name = (lead.name || "जी").trim();
+      const speak = [];
+      const transcript = [];
+      const push = (hi, en, isAi) => {
+        const text = line(hi, en);
+        transcript.push(text);
+        if (isAi) speak.push(langMode() === "en" ? en.replace(/^AI:\s*/, "") : hi.replace(/^एआई:\s*/, "").replace(/^AI:\s*/, ""));
+      };
+
+      push(
+        "एआई: नमस्ते, क्या मैं " + name + " से बात कर रहा हूँ? मैं " + FIRM + " की ओर से कॉल कर रहा हूँ, हम लोन सेटलमेंट में मदद करते हैं। क्या आपके ऊपर ऐसा लोन है जिसकी EMI भरने में दिक्कत है, या लोन पहले से डिफॉल्ट हो चुका है?",
+        "AI: Hello, am I speaking with " + name + "? I am calling on behalf of " + FIRM + ", a legal firm that helps people settle loans. Do you have a loan where you are having trouble paying EMIs, or have you already defaulted on the loan?",
+        true
+      );
+
+      const outcome = classifyDemoOutcome(lead.phone);
+      const updated = { ...lead };
+      if (outcome === "no_answer") {
+        transcript.push(line("सिस्टम: कॉल का जवाब नहीं मिला।", "System: The call was not answered."));
+        updated.call_status = "No answer";
+        updated.notes = "No answer";
+        return { updated, transcript, speak };
+      }
+      if (outcome === "no_loan") {
+        push(name + ": मेरे ऊपर ऐसा कोई लोन नहीं है।", name + ": I do not have a loan like that.", false);
+        push("एआई: धन्यवाद, हम आगे नहीं बढ़ेंगे।", "AI: Thank you for your time. We will not proceed.", true);
+        updated.call_status = "No loan";
+        updated.interested = "No";
+        updated.notes = "Person said they do not have a troubled or defaulted loan";
+        return { updated, transcript, speak };
+      }
+      if (outcome === "not_interested") {
+        push(name + ": लोन है, लेकिन सेटलमेंट में दिलचस्पी नहीं है।", name + ": I have a loan, but I am not interested in settlement.", false);
+        push("एआई: ठीक है, धन्यवाद। बाद में सम्पर्क कर सकते हैं।", "AI: Understood. Thank you. You may contact us later if you change your mind.", true);
+        updated.call_status = "Not interested";
+        updated.interested = "No";
+        updated.notes = "Has a loan but declined settlement";
+        return { updated, transcript, speak };
+      }
+
+      const a = amountsFromPhone(lead.phone);
+      const feePercent = a.acceptsHigh ? 7.5 : 5;
+      const settlement = Math.round(a.remaining * 0.3 * 100) / 100;
+      const fee = Math.round(a.remaining * (feePercent / 100) * 100) / 100;
+      push(
+        name + ": हाँ, EMI में दिक्कत है / लोन डिफॉल्ट हो चुका है। मैं सेटल करना चाहता/चाहती हूँ।",
+        name + ": Yes. I am having trouble paying EMIs / the loan has defaulted. I am willing to settle.",
+        false
+      );
+      push(
+        "एआई: धन्यवाद। कुल लोन राशि और बचा हुआ बकाया बताइए, और CIBIL या अनुभव स्कोर भी नोट कर लूँ?",
+        "AI: Thank you. What is the total loan amount and the remaining amount, and may I note your CIBIL score or experience score?",
+        true
+      );
+      push(
+        name + ": कुल लोन ₹" + a.total + " है, बचा हुआ ₹" + a.remaining + " है। स्कोर: " + a.score + "।",
+        name + ": Total loan is ₹" + a.total + ". Remaining is ₹" + a.remaining + ". Score: " + a.score + ".",
+        false
+      );
+      push(
+        "एआई: " + FIRM + " बैंक या लोन देने वाली संस्था से बचे हुए रकम के 30% के भीतर सेटल करवा सकता है। बकाया ₹" +
+          a.remaining.toFixed(2) + " पर यह लगभग ₹" + settlement.toFixed(2) + " या उससे कम होगा। हमारी कानूनी फीस ₹" +
+          fee.toFixed(2) + " (" + feePercent + "% of remaining) रहेगी।",
+        "AI: " + FIRM + " can work to settle this loan with the bank or lender within 30% of the remaining amount. For a remaining amount of ₹" +
+          a.remaining.toFixed(2) + ", that is about ₹" + settlement.toFixed(2) + " or lesser. Our legal fee would be ₹" +
+          fee.toFixed(2) + " (" + feePercent + "% of the remaining amount).",
+        true
+      );
+      if (a.acceptsHigh) {
+        push(name + ": मैं " + feePercent + "% फीस और सेटलमेंट ऑफर से सहमत हूँ।", name + ": I agree to the " + feePercent + "% legal fee and the settlement offer.", false);
+      } else {
+        push(name + ": अगर फीस 7.5% की जगह " + feePercent + "% हो तो मैं आगे बढ़ूँगा/बढ़ूँगी।", name + ": I can go ahead if the legal fee is " + feePercent + "% rather than 7.5%.", false);
+        push("एआई: ठीक है, 5% फीस पर आगे बढ़ते हैं।", "AI: We can proceed at 5% as you are willing to pay that fee.", true);
+      }
+      push(
+        "एआई: हम समझौता तैयार करेंगे कि फर्म बचे हुए रकम के 30% के भीतर बैंक से सेटल करेगी।",
+        "AI: We will prepare an agreement that the firm will settle with the bank or lender within 30% of the remaining amount.",
+        true
+      );
+      updated.call_status = "Completed";
+      updated.interested = "Yes";
+      updated.total_loan_amount = a.total.toFixed(2);
+      updated.remaining_amount = a.remaining.toFixed(2);
+      updated.settlement_amount = settlement.toFixed(2);
+      updated.legal_fee = fee.toFixed(2);
+      updated.fee_percent = String(feePercent);
+      updated.cibil_or_experience = a.score;
+      updated.notes = "Settle ₹" + settlement.toFixed(2) + " (30% of remaining ₹" + a.remaining.toFixed(2) + "). Legal fee ₹" + fee.toFixed(2) + " (" + feePercent + "%).";
+      return { updated, transcript, speak };
+    }
+
+    function pickVoice(langCode) {
+      const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+      const want = langCode === "en" ? "en" : "hi";
+      return voices.find((v) => v.lang.toLowerCase().startsWith(want)) ||
+        voices.find((v) => /hindi|हिन्दी|indian/i.test(v.name)) ||
+        null;
+    }
+
+    function speakQueue(phrases) {
+      return new Promise((resolve) => {
+        if (!speakEnabled() || !window.speechSynthesis || !phrases.length) {
+          resolve();
+          return;
+        }
+        speechSynthesis.cancel();
+        const langCode = langMode() === "en" ? "en-IN" : "hi-IN";
+        let i = 0;
+        const next = () => {
+          if (i >= phrases.length) { resolve(); return; }
+          const u = new SpeechSynthesisUtterance(phrases[i]);
+          u.lang = langCode;
+          const voice = pickVoice(langMode() === "en" ? "en" : "hi");
+          if (voice) u.voice = voice;
+          u.rate = 1;
+          u.onend = () => { i += 1; next(); };
+          u.onerror = () => { i += 1; next(); };
+          speechSynthesis.speak(u);
+        };
+        next();
+      });
+    }
+
+    function parseCsvLine(line) {
+      const out = [];
+      let cur = "";
+      let q = false;
+      for (let i = 0; i < line.length; i += 1) {
+        const ch = line[i];
+        if (q) {
+          if (ch === '"' && line[i + 1] === '"') { cur += '"'; i += 1; }
+          else if (ch === '"') q = false;
+          else cur += ch;
+        } else if (ch === '"') q = true;
+        else if (ch === "," || ch === "\t" || ch === ";") { out.push(cur.trim()); cur = ""; }
+        else cur += ch;
+      }
+      out.push(cur.trim());
+      return out;
+    }
+
+    function normalizeSheetUrl(url) {
+      const text = String(url || "").trim();
+      const match = text.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      if (!match) return text;
+      const gid = (text.match(/[?&#]gid=([0-9]+)/) || [])[1] || "0";
+      return "https://docs.google.com/spreadsheets/d/" + match[1] + "/export?format=csv&gid=" + gid;
+    }
+
+    function parseLeadsFromText(text) {
+      const raw = String(text || "").replace(/^\uFEFF/, "");
+      const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (!lines.length) return [];
+      const rows = lines.map(parseCsvLine);
+      const header = rows[0].map((c) => c.toLowerCase().replace(/\s+/g, "_"));
+      const nameIdx = header.findIndex((h) => ["name", "naam", "full_name", "customer", "borrower"].includes(h));
+      const phoneIdx = header.findIndex((h) => ["phone", "mobile", "number", "phone_number", "mobile_number", "contact", "mob"].includes(h));
+      const hasHeader = nameIdx >= 0 || phoneIdx >= 0;
+      const start = hasHeader ? 1 : 0;
+      const found = [];
+      for (let i = start; i < rows.length; i += 1) {
+        const row = rows[i];
+        let name = "";
+        let phone = "";
+        if (hasHeader) {
+          name = nameIdx >= 0 ? (row[nameIdx] || "") : (row[0] || "");
+          phone = phoneIdx >= 0 ? (row[phoneIdx] || "") : (row[1] || row[0] || "");
+        } else if (row.length === 1) {
+          const one = row[0];
+          const d = digitsOf(one);
+          if (d.length >= 10 && d.length <= 15 && !/[a-zA-Z\u0900-\u097F]/.test(one.replace(/[\d+\-()\s]/g, ""))) {
+            phone = one;
+          } else {
+            const parts = one.split(/[,;]+|\s{2,}|\t+/);
+            name = parts[0] || "";
+            phone = parts.slice(1).join(" ") || parts[0];
+            if (digitsOf(name).length >= 10 && digitsOf(phone).length < 10) { phone = name; name = ""; }
+          }
+        } else {
+          name = row[0] || "";
+          phone = row[1] || row[0] || "";
+        }
+        if (digitsOf(phone).length >= 10) found.push(emptyLead(String(name).trim(), String(phone).trim()));
+      }
+      return found;
+    }
+
+    function mergeLeads(incoming) {
+      if (document.getElementById("replaceOn").checked) {
+        leads = incoming.slice();
+        return incoming.length;
+      }
+      const have = new Set(leads.map((l) => digitsOf(l.phone)));
+      let added = 0;
+      for (const row of incoming) {
+        const d = digitsOf(row.phone);
+        if (!d || have.has(d)) continue;
+        have.add(d);
+        leads.push(row);
+        added += 1;
+      }
+      return added;
+    }
+
+    async function fetchTextFromLink(url) {
+      const target = normalizeSheetUrl(url);
+      try {
+        const direct = await fetch(target);
+        if (direct.ok) return await direct.text();
+      } catch (err) { /* try server proxy next */ }
+      const proxy = await fetch("/api/v1/import/from-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: target }),
+      });
+      if (!proxy.ok) {
+        const detail = await proxy.json().catch(() => ({}));
+        throw new Error(detail.detail || "Could not download that link. Save it as CSV and use Import file.");
+      }
+      const body = await proxy.json();
+      return body.text;
+    }
+
+    function rowClass(status) {
+      if (status === "Completed") return "completed";
+      if (status === "No answer") return "noanswer";
+      if (status === "Not interested") return "notinterested";
+      if (status === "No loan") return "noloan";
+      if (status === "Calling") return "calling";
+      return "";
+    }
+
+    function render() {
+      const body = document.getElementById("rows");
+      body.innerHTML = leads.map((lead, i) => {
+        const c = rowClass(lead.call_status);
+        return `<tr class="${c}" data-i="${i}" onclick="selectRow(${i})">
+          <td><input class="cell" data-f="name" value="${escapeAttr(lead.name)}" /></td>
+          <td><input class="cell" data-f="phone" value="${escapeAttr(lead.phone)}" /></td>
+          <td>${escapeHtml(lead.call_status)}</td>
+          <td>${escapeHtml(lead.interested)}</td>
+          <td>${escapeHtml(lead.total_loan_amount)}</td>
+          <td>${escapeHtml(lead.remaining_amount)}</td>
+          <td>${escapeHtml(lead.settlement_amount)}</td>
+          <td>${escapeHtml(lead.legal_fee)}</td>
+          <td>${escapeHtml(lead.fee_percent)}</td>
+          <td>${escapeHtml(lead.cibil_or_experience)}</td>
+          <td>${escapeHtml(lead.notes)}</td>
+        </tr>`;
+      }).join("");
+      body.querySelectorAll("input.cell").forEach((input) => {
+        input.addEventListener("change", () => {
+          const i = Number(input.closest("tr").dataset.i);
+          leads[i][input.dataset.f] = input.value;
+        });
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function escapeAttr(value) { return escapeHtml(value).replace(/"/g, "&quot;"); }
+
+    function logLines(lines) {
+      const el = document.getElementById("log");
+      el.textContent += "\n" + lines.join("\n") + "\n";
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function resetSample() {
+      leads = SAMPLE.map(([name, phone]) => emptyLead(name, phone));
+      document.getElementById("log").textContent = "नमूना सूची लगी। Start process दबाएँ। असली फ़ोन नहीं बजेंगे।\nSample list loaded.\n";
+      document.getElementById("status").textContent = "Ready.";
+      render();
+    }
+
+    function downloadCsv() {
+      const headers = ["name","phone","call_status","interested","total_loan_amount","remaining_amount","settlement_amount","legal_fee","fee_percent","cibil_or_experience","notes"];
+      const lines = [headers.join(",")];
+      for (const lead of leads) {
+        lines.push(headers.map((h) => `"${String(lead[h] || "").replace(/"/g, '""')}"`).join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "LegalAI-leads.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function startProcess() {
+      if (running) return;
+      if (!leads.some((l) => l.phone)) {
+        alert("कम से कम एक फ़ोन नंबर जोड़ें / Add at least one phone number.");
+        return;
+      }
+      const live = document.getElementById("liveMode").checked;
+      if (live) {
+        if (!confirm("LIVE MODE: real phones will ring. Only continue if you are allowed to call these numbers.\n\nअसली कॉल जाएगी। आगे बढ़ें?")) return;
+      } else if (!confirm("डेमो मोड: एजेंट शीट के हर नंबर पर इस विंडो में कॉल करेगा (असली फ़ोन नहीं बजेंगे)। आगे बढ़ें?\n\nDemo mode: no real phones. Continue?")) {
+        return;
+      }
+      running = true;
+      stopFlag = false;
+      document.getElementById("startBtn").disabled = true;
+      if (window.speechSynthesis) speechSynthesis.getVoices();
+      for (let i = 0; i < leads.length; i += 1) {
+        if (stopFlag) break;
+        const lead = leads[i];
+        if (!lead.phone || ["Completed", "Not interested", "No loan", "Live call placed"].includes(lead.call_status)) continue;
+        lead.call_status = "Calling";
+        render();
+        logLines(["—— " + (lead.name || lead.phone) + " ——", line("सिस्टम: " + lead.phone + " पर कॉल जा रही है…", "System: Dialing " + lead.phone + "…")]);
+        document.getElementById("status").textContent = "Calling " + (lead.name || lead.phone) + "…";
+        if (live) {
+          try {
+            const res = await fetch("/api/v1/calls/live", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: lead.name,
+                phone: lead.phone,
+                firm_name: FIRM,
+                voice_gender: document.getElementById("voiceSelect").value,
+                language: langMode() === "en" ? "en" : "hi",
+              }),
+            });
+            const body = await res.json();
+            if (!res.ok) throw new Error(body.detail || "Live call failed");
+            lead.call_status = "Live call placed";
+            lead.notes = "Live Vapi call " + (body.call_id || "") + " voice " + (body.voice_id || "");
+            logLines([
+              "System: Live call placed to " + body.to + " (id " + body.call_id + ").",
+              "Voice: " + body.voice_id + " (neural Indian " + document.getElementById("voiceSelect").value + ").",
+              "After the person hangs up, type amounts into this row if they shared them.",
+            ]);
+          } catch (err) {
+            lead.call_status = "Call failed";
+            lead.notes = String(err.message || err);
+            logLines(["System: " + lead.notes, "Open Live setup. Real calls need VAPI keys and http://127.0.0.1:8000"]);
+          }
+          leads[i] = lead;
+          render();
+          continue;
+        }
+        const result = simulateCall(lead);
+        await speakQueue(result.speak);
+        if (!result.speak.length || !speakEnabled()) await new Promise((r) => setTimeout(r, 400));
+        leads[i] = result.updated;
+        render();
+        logLines(result.transcript);
+      }
+      if (window.speechSynthesis) speechSynthesis.cancel();
+      running = false;
+      document.getElementById("startBtn").disabled = false;
+      document.getElementById("status").textContent = "Process finished. Download Excel (CSV) से परिणाम सेव करें।";
+      logLines([line("सिस्टम: अभियान पूरा हुआ।", "System: Campaign finished.")]);
+    }
+
+    document.getElementById("startBtn").onclick = startProcess;
+    document.getElementById("stopBtn").onclick = () => {
+      stopFlag = true;
+      if (window.speechSynthesis) speechSynthesis.cancel();
+    };
+    document.getElementById("resetBtn").onclick = resetSample;
+    document.getElementById("downloadBtn").onclick = downloadCsv;
+    document.getElementById("liveBtn").onclick = () => {
+      document.getElementById("livePanel").classList.add("open");
+      refreshLiveStatus();
+    };
+    document.getElementById("liveCancel").onclick = () => document.getElementById("livePanel").classList.remove("open");
+    document.getElementById("liveRefresh").onclick = refreshLiveStatus;
+
+    async function refreshLiveStatus() {
+      const line = document.getElementById("liveReadyLine");
+      try {
+        const res = await fetch("/api/v1/live/status");
+        const body = await res.json();
+        if (body.ready) {
+          line.className = "ready";
+          line.textContent = "Live calling is ready. Tick Live real call, use one test number you own, then Start process.";
+        } else {
+          line.className = "notready";
+          line.textContent = "Not ready yet. Missing: " + (body.missing || []).join(", ") + ". Copy .env.example to .env and restart the app.";
+        }
+      } catch (err) {
+        line.className = "notready";
+        line.textContent = "Open this page at http://127.0.0.1:8000 (Start-LegalAI.bat). A saved HTML file cannot place a real call.";
+      }
+    }
+    document.getElementById("addBtn").onclick = () => {
+      const name = prompt("Name / नाम?");
+      if (name === null) return;
+      const phone = prompt("Phone / फ़ोन?");
+      if (phone === null) return;
+      leads.push(emptyLead(name.trim(), phone.trim()));
+      render();
+    };
+    document.getElementById("fileBtn").onclick = () => document.getElementById("fileInput").click();
+    document.getElementById("fileInput").onchange = async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      const text = await file.text();
+      const incoming = parseLeadsFromText(text);
+      if (!incoming.length) {
+        alert("इस फ़ाइल में नाम/नंबर नहीं मिले। CSV में कॉलम Name और Phone रखें।");
+        return;
+      }
+      const added = mergeLeads(incoming);
+      render();
+      document.getElementById("status").textContent = "Imported " + added + " number(s) from file.";
+    };
+    document.getElementById("linkBtn").onclick = () => {
+      document.getElementById("linkPanel").classList.add("open");
+      document.getElementById("pastePanel").classList.remove("open");
+    };
+    document.getElementById("pasteBtn").onclick = () => {
+      document.getElementById("pastePanel").classList.add("open");
+      document.getElementById("linkPanel").classList.remove("open");
+    };
+    document.getElementById("linkCancel").onclick = () => document.getElementById("linkPanel").classList.remove("open");
+    document.getElementById("pasteCancel").onclick = () => document.getElementById("pastePanel").classList.remove("open");
+    document.getElementById("pasteGo").onclick = () => {
+      const incoming = parseLeadsFromText(document.getElementById("pasteBox").value);
+      if (!incoming.length) { alert("कोई मान्य नंबर नहीं मिला।"); return; }
+      const added = mergeLeads(incoming);
+      render();
+      document.getElementById("pastePanel").classList.remove("open");
+      document.getElementById("status").textContent = "Added " + added + " number(s) from paste.";
+    };
+    document.getElementById("linkGo").onclick = async () => {
+      const url = document.getElementById("linkUrl").value.trim();
+      if (!url) return;
+      document.getElementById("status").textContent = "Downloading list…";
+      try {
+        const text = await fetchTextFromLink(url);
+        const incoming = parseLeadsFromText(text);
+        if (!incoming.length) throw new Error("Link opened but no Name/Phone rows were found.");
+        const added = mergeLeads(incoming);
+        render();
+        document.getElementById("linkPanel").classList.remove("open");
+        document.getElementById("status").textContent = "Imported " + added + " number(s) from link.";
+      } catch (err) {
+        alert(err.message || String(err));
+        document.getElementById("status").textContent = "Import from link failed.";
+      }
+    };
+
+    function selectRow(i) { selectedIndex = i; }
+
+    function selectedLead() {
+      return leads[selectedIndex] || leads.find((l) => l.phone) || emptyLead("", "");
+    }
+
+    function settlementWhatsAppText(lead) {
+      const remaining = parseFloat(lead.remaining_amount);
+      const feePct = parseFloat(lead.fee_percent) || 5;
+      const name = lead.name || "ji";
+      if (!remaining || remaining <= 0) {
+        if (langMode() === "en") {
+          return "Hello " + name + ", this is " + FIRM + ". Please share your remaining loan amount so we can confirm a settlement within 30% and a legal fee of 5–7.5%.";
+        }
+        return "नमस्ते " + name + ", " + FIRM + " से संपर्क है। बचे हुए लोन की राशि भेजें ताकि हम 30% के भीतर सेटलमेंट और 5–7.5% फीस बता सकें।";
+      }
+      const settlement = Math.round(remaining * 0.3 * 100) / 100;
+      const fee = Math.round(remaining * (feePct / 100) * 100) / 100;
+      if (langMode() === "en") {
+        return "Hello " + name + ", this is " + FIRM + ". For remaining loan ₹" + remaining.toFixed(2) +
+          ", we can work to settle at about ₹" + settlement.toFixed(2) + " (within 30%) and a legal fee of ₹" +
+          fee.toFixed(2) + " (" + feePct + "%). Please confirm if you wish to proceed.";
+      }
+      return "नमस्ते " + name + ", " + FIRM + " से संपर्क है। बचे हुए लोन ₹" + remaining.toFixed(2) +
+        " पर सेटलमेंट लगभग ₹" + settlement.toFixed(2) + " (30% के भीतर) और कानूनी फीस ₹" + fee.toFixed(2) +
+        " (" + feePct + "%) है। अगर आगे बढ़ना हो तो कृपया पुष्टि करें।";
+    }
+
+    window.onTeleCrmLeads = function (rawText) {
+      let parsed;
+      try { parsed = JSON.parse(rawText); } catch (err) { alert("TeleCRM returned text that is not JSON"); return; }
+      const rows = Array.isArray(parsed) ? parsed : (parsed.leads || parsed.data || parsed.results || parsed.items || [parsed]);
+      const incoming = [];
+      (rows || []).forEach((item) => {
+        const fields = item && item.fields ? item.fields : item;
+        if (!fields) return;
+        const map = {};
+        Object.keys(fields).forEach((k) => { map[k.toLowerCase()] = fields[k]; });
+        const name = String(map.name || map.naam || "");
+        const phone = String(map.phone || map.mobile || map.number || map["phone number"] || "");
+        if (digitsOf(phone).length >= 10) incoming.push(emptyLead(name.trim(), phone.trim()));
+      });
+      if (!incoming.length) { alert("No phone numbers in TeleCRM response. Check the pull URL."); return; }
+      const added = mergeLeads(incoming);
+      render();
+      document.getElementById("status").textContent = "Pulled " + added + " number(s) from TeleCRM.";
+    };
+
+    if (nativeApp()) {
+      document.body.classList.add("android");
+      document.getElementById("callBtn").onclick = () => LegalAINative.dial(selectedLead().phone || "");
+      document.getElementById("waBtn").onclick = () => {
+        const lead = selectedLead();
+        if (!lead.phone) { alert("Select a row with a phone number."); return; }
+        LegalAINative.whatsapp(lead.phone, settlementWhatsAppText(lead));
+      };
+      document.getElementById("crmOpenBtn").onclick = () => LegalAINative.openTeleCrmApp();
+      document.getElementById("crmPullBtn").onclick = () => LegalAINative.pullLeadsFromTeleCrm();
+      document.getElementById("crmPushBtn").onclick = () => {
+        const lead = selectedLead();
+        if (!lead.phone) { alert("Select a row first."); return; }
+        LegalAINative.pushLeadToTeleCrm(JSON.stringify(lead));
+      };
+      document.getElementById("crmSetupBtn").onclick = () => {
+        document.getElementById("crmPanel").classList.add("open");
+        try {
+          const saved = JSON.parse(LegalAINative.loadTeleCrmSettings());
+          document.getElementById("crmPushUrl").value = saved.pushUrl || "";
+          document.getElementById("crmPullUrl").value = saved.pullUrl || "";
+        } catch (err) { /* ignore */ }
+      };
+      document.getElementById("crmCancel").onclick = () => document.getElementById("crmPanel").classList.remove("open");
+      document.getElementById("crmSave").onclick = () => {
+        LegalAINative.saveTeleCrmSettings(
+          document.getElementById("crmPushUrl").value,
+          document.getElementById("crmPullUrl").value,
+          document.getElementById("crmToken").value
+        );
+        document.getElementById("crmPanel").classList.remove("open");
+      };
+    }
+
+    if (window.speechSynthesis) {
+      speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+      speechSynthesis.getVoices();
+    }
+    resetSample();
+  </script>
+</body>
+</html>

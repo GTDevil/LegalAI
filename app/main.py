@@ -1,54 +1,157 @@
-"""FastAPI application for the LegalAI Loan Settlement Agent."""
+"""HTTP API for settlement math and demo calling campaigns."""
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
 
-from app.settlement import LoanCase, recommend_settlement
+from app.call_agent import CampaignController
+from app.call_script import simulate_call
+from app.live_call import azure_voice_id, place_vapi_call
+from app.live_config import REQUIREMENTS, live_ready, missing_live_settings
+from app.paths import project_root
+from app.settings import AppSettings
+from app.settlement import compute_settlement
+from app.url_fetch import fetch_public_text, normalize_sheet_url
+from app.workbook import Lead
+
+load_dotenv()
 
 app = FastAPI(
-    title="LegalAI Loan Settlement Agent",
-    description="AI-assisted loan settlement recommendation API",
-    version="0.1.0",
+    title="LegalAI Loan Settlement Calling Agent",
+    description="Spreadsheet-oriented loan settlement calling assistant",
+    version="0.2.0",
 )
 
 
 class SettlementRequest(BaseModel):
-    principal: float = Field(gt=0, description="Original loan principal")
-    outstanding_balance: float = Field(gt=0, description="Current outstanding balance")
-    days_past_due: int = Field(ge=0, description="Days the loan is past due")
-    borrower_income: float = Field(ge=0, description="Borrower's annual income")
-    prior_settlements: int = Field(default=0, ge=0, description="Number of prior settlements")
+    remaining_amount: float = Field(gt=0, description="Amount still owed")
+    fee_percent: float = Field(default=7.5, description="Legal fee 5 to 7.5")
+    settlement_percent: float = Field(default=30, description="At most 30% of remaining")
 
 
 class SettlementResponse(BaseModel):
-    recommended_amount: float
-    discount_percent: float
-    payment_terms_months: int
-    rationale: str
+    remaining_amount: float
+    settlement_amount: float
+    fee_amount: float
+    fee_percent: float
+    settlement_percent: float
+    summary: str
+
+
+class SimulateCallRequest(BaseModel):
+    name: str
+    phone: str
+    firm_name: str = "LegalAI Associates"
+
+
+class CampaignLead(BaseModel):
+    name: str = ""
+    phone: str = ""
+
+
+class CampaignRequest(BaseModel):
+    leads: list[CampaignLead]
+    firm_name: str = "LegalAI Associates"
+
+
+class ImportUrlRequest(BaseModel):
+    url: str = Field(min_length=8, description="https link to a CSV or Google Sheet")
+
+
+class LiveCallRequest(BaseModel):
+    name: str = ""
+    phone: str
+    firm_name: str = "LegalAI Associates"
+    voice_gender: str = "woman"
+    language: str = "hi"
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "legalai-settlement-agent"}
+    return {"status": "ok", "service": "legalai-calling-agent"}
+
+
+@app.get("/")
+def calling_desk():
+    page = project_root() / "web" / "index.html"
+    if not page.exists():
+        raise HTTPException(status_code=404, detail="Calling desk page is missing")
+    return FileResponse(page)
 
 
 @app.post("/api/v1/settlement/recommend", response_model=SettlementResponse)
 def recommend(request: SettlementRequest) -> SettlementResponse:
     try:
-        case = LoanCase(
-            principal=request.principal,
-            outstanding_balance=request.outstanding_balance,
-            days_past_due=request.days_past_due,
-            borrower_income=request.borrower_income,
-            prior_settlements=request.prior_settlements,
+        offer = compute_settlement(
+            request.remaining_amount,
+            fee_percent=request.fee_percent,
+            settlement_percent=request.settlement_percent,
         )
-        offer = recommend_settlement(case)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return SettlementResponse(**offer.__dict__)
 
-    return SettlementResponse(
-        recommended_amount=offer.recommended_amount,
-        discount_percent=offer.discount_percent,
-        payment_terms_months=offer.payment_terms_months,
-        rationale=offer.rationale,
-    )
+
+@app.post("/api/v1/calls/simulate")
+def simulate(request: SimulateCallRequest) -> dict:
+    result = simulate_call(Lead(name=request.name, phone=request.phone), firm_name=request.firm_name)
+    lead = result.lead
+    return {
+        "outcome": result.outcome,
+        "transcript": result.transcript,
+        "lead": lead.display_values(),
+    }
+
+
+@app.post("/api/v1/import/from-url")
+def import_from_url(request: ImportUrlRequest) -> dict:
+    try:
+        text = fetch_public_text(normalize_sheet_url(request.url))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Could not download that link") from exc
+    return {"text": text}
+
+
+@app.get("/api/v1/live/status")
+def live_status() -> dict:
+    ready = live_ready()
+    return {
+        "ready": ready,
+        "provider": "vapi",
+        "missing": missing_live_settings(),
+        "requirements": REQUIREMENTS,
+        "voice_woman": azure_voice_id("woman", "hi"),
+        "voice_man": azure_voice_id("man", "hi"),
+    }
+
+
+@app.post("/api/v1/calls/live")
+def live_call(request: LiveCallRequest) -> dict:
+    if not request.phone.strip():
+        raise HTTPException(status_code=400, detail="Phone number is required")
+    try:
+        result = place_vapi_call(
+            name=request.name,
+            phone=request.phone,
+            firm_name=request.firm_name,
+            voice_gender=request.voice_gender,
+            language=request.language,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return result
+
+
+@app.post("/api/v1/campaign/demo")
+def demo_campaign(request: CampaignRequest) -> dict:
+    leads = [Lead(name=item.name, phone=item.phone) for item in request.leads]
+    settings = AppSettings(firm_name=request.firm_name, call_mode="demo", seconds_between_calls=0)
+    report = CampaignController().run(leads, settings)
+    return {
+        "attempted": report.attempted,
+        "completed": report.completed,
+        "leads": [lead.display_values() for lead in leads],
+    }

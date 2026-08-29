@@ -1,103 +1,42 @@
-# LegalAI
+# LegalAI — loan settlement calling desk
 
-Loan Settlement Agent — a desktop app (and optional API) for recommending loan settlement offers.
+Excel-like sheet of names and numbers. **Start process** runs the AI agent and fills settlement (30% of remaining) and legal fee (5%–7.5%).
 
----
+## Test on your PC right now (no Python)
 
-## Start here (from scratch)
+1. Double-click **`DOUBLE-CLICK-TO-TEST.bat`**
+2. Keep language **हिन्दी** and **Speak / बोलें** on
+3. Add extra numbers with **Import file**, **Import from link**, or **Paste numbers**
+4. Click **Start process**
+5. Confirm **Ramesh Nair** shows remaining 100000, settlement 30000, fee 5000
+6. Click **Download Excel (CSV)**
 
-### If you only want the app on Windows (no coding)
+Or double-click `web/index.html` in Edge or Chrome.
 
-1. Go to [GitHub Actions → Build Windows EXE](https://github.com/GTDevil/LegalAI/actions/workflows/build-windows-exe.yml)
-2. Open the latest green checkmark run
-3. Download artifact **`LegalAI-windows-exe`**
-4. Extract **`LegalAI.exe`**
-5. Double-click **`LegalAI.exe`**
-6. Enter loan details → click **Calculate Settlement Offer**
+Full staff steps: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) and `START-HERE.txt`.
 
-### If you want to build on your PC (Windows)
+Demo mode does not ring real phones. For a live Indian-sounding call, see [docs/LIVE_CALLING.md](docs/LIVE_CALLING.md).
 
-```powershell
-git clone https://github.com/GTDevil/LegalAI.git
-cd LegalAI
-python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements-build.txt
-.venv\Scripts\python -m PyInstaller legalai-desktop.spec --noconfirm
-```
-
-Your app: `dist\LegalAI.exe`
-
-### If you are developing in Cursor Cloud Agents
-
-1. Save the environment in the Environment panel (install script: `./.cursor/scripts/install.sh`)
-2. Start an agent on `GTDevil/LegalAI` / `main`
-3. Run desktop UI: `.venv/bin/python run_desktop.py`
-4. Run tests: `.venv/bin/pytest -v`
+**Android APK:** [docs/ANDROID.md](docs/ANDROID.md) — Phone app calls, TeleCRM numbers/status, WhatsApp settlement messages. GitHub Action **Build Android APK**.
 
 ---
 
-## Development commands
-
-### Setup
+## Developers / Cursor Cloud
 
 ```bash
 ./.cursor/scripts/install.sh
-```
-
-### Run desktop UI
-
-```bash
-.venv/bin/python run_desktop.py
-```
-
-### Run API server (optional)
-
-```bash
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### Run tests
-
-```bash
 .venv/bin/pytest -v
+.venv/bin/python run_desktop.py --window
+.venv/bin/python -m app.cli --input data/sample_leads.csv --output /tmp/leads-out.xlsx
+.venv/bin/python run_web.py
 ```
 
-### Build desktop executable
+Cursor skill: `.cursor/skills/loan-settlement-calling/SKILL.md`.
 
-```bash
-./scripts/build_exe.sh
-```
-
-Output: `dist/LegalAI` (Linux) or `dist/LegalAI.exe` (Windows). No console window on Windows.
-
-**API server executable** (optional):
-
-```bash
-BUILD_TARGET=server ./scripts/build_exe.sh
-```
-
----
-
-## Project layout
-
-| Path | What it is |
+| Path | Role |
 | --- | --- |
-| `app/desktop_ui.py` | Desktop window (Tkinter) |
-| `app/settlement.py` | Settlement calculation logic |
-| `app/main.py` | FastAPI API (optional) |
-| `run_desktop.py` | Launch desktop app |
-| `legalai-desktop.spec` | PyInstaller config for desktop `.exe` |
-| `scripts/build_exe.sh` | One-command build script |
-
----
-
-## API (optional)
-
-- `GET /health`
-- `POST /api/v1/settlement/recommend`
-
-```bash
-curl -X POST http://localhost:8000/api/v1/settlement/recommend \
-  -H "Content-Type: application/json" \
-  -d '{"principal": 50000, "outstanding_balance": 40000, "days_past_due": 90, "borrower_income": 55000}'
-```
+| `web/index.html` | No-install calling desk (double-click) |
+| `DOUBLE-CLICK-TO-TEST.bat` | Opens that page on Windows |
+| `app/desktop_ui.py` | Optional Tkinter window (`--window`) |
+| `app/call_script.py` | Call script and demo conversations |
+| `docs/USER_GUIDE.md` | Staff instructions |

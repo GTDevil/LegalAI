@@ -2,15 +2,7 @@ name: Build Windows EXE
 
 on:
   push:
-    branches: [main]
-    paths:
-      - "app/**"
-      - "run_desktop.py"
-      - "run_server.py"
-      - "legalai*.spec"
-      - "requirements*.txt"
-      - "scripts/build_exe.sh"
-      - ".github/workflows/build-windows-exe.yml"
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -36,4 +28,18 @@ jobs:
         with:
           name: LegalAI-windows-exe
           path: dist/LegalAI.exe
+          if-no-files-found: error
+
+      - name: Stage browser calling desk
+        shell: bash
+        run: |
+          mkdir -p dist-browser
+          cp web/index.html START-HERE.txt dist-browser/
+          cp DOUBLE-CLICK-TO-TEST.bat dist-browser/
+
+      - name: Upload browser calling desk (no install)
+        uses: actions/upload-artifact@v4
+        with:
+          name: LegalAI-open-in-browser
+          path: dist-browser/
           if-no-files-found: error
